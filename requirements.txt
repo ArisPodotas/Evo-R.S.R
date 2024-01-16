@@ -1,0 +1,17 @@
+All the following are the moduels used in the project
+To install any of them use: pip install {moduel name}
+To use any of them in a file use: import {moduel name}
+
+random
+re
+os
+math
+from Bio: Entrez
+from Bio: SeqIO
+sys
+matplotlib.pyplot
+statistics
+pytest
+from unittest.mock: patch
+time
+tkinter
