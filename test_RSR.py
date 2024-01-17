@@ -1,4 +1,4 @@
-from cs50_final_project import Person, Population, compare, NCBI_parse, make_folders, cmd_line_input, make_figures, Sequence, Gene, Genome, Chromosome, Intergenic 
+from Evo_RSR import Person, Population, compare, NCBI_parse, make_folders, cmd_line_input, make_figures, Sequence, Gene, Genome, Chromosome, Intergenic 
 import pytest
 import os
 import random
