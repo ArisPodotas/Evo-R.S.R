@@ -1,8 +1,10 @@
 import Evo_RSR as rsr
+import time
+
 #Alternatively import the moduels from requierments individually with Evo_RSR
 
 def main():
-	main_time = rsr.time.time()
+	main_time = time.time()
 	cmd = rsr.cmd_line_input()
 	rsr.make_folders(cmd['-o'], "RSR_output_folder")
 	athens = rsr.Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = rsr.NCBI_parse(cmd["-acc"]))
@@ -17,7 +19,7 @@ def main():
 Process finished.\n\nParse results at {rsr.os.path.abspath(cmd['-o'])}\RSR_output_folder within Results.txt and RSR Outpout Graph.png
 
 ##############################################################################################################################################\n""")
-	main_end_time = rsr.time.time() - main_time
+	main_end_time = time.time() - main_time
 	print(f"Took {main_end_time:.2f} seconds to run.\n")
 
 if __name__ == "__main__":

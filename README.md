@@ -47,6 +47,8 @@ pip install Evo_R.S.R
 
 Example simulations:
 
+    The original Evo_RSR.py file contains a main function that is the same as in example.py
+
 - ### Help screen
 
 ```
@@ -57,6 +59,12 @@ python ".\Evo_R.S.R.py" -h
 
 ```
 python ".\Evo_R.S.R.py"
+```
+
+Alternative
+
+```
+python example.py
 ```
 
 - ### Custom run
@@ -89,6 +97,8 @@ The Population class is contained within thr Person calss dispite not inheriting
 ### video overview of built in functionality:
 
 - www.youtube.com/watch?v=5FKgHpSOwxU
+
+example.py contains the same base run as in the video
 
 ### video overview of classes, functions as a moduel:
 

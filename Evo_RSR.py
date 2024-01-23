@@ -4,7 +4,6 @@
 # City: Athens
 # Date: 30/8/2023
 
-#importing libraries
 import random
 import re
 import os
@@ -14,15 +13,11 @@ from Bio import SeqIO
 import sys
 import matplotlib.pyplot as plt
 import statistics as stat
-import time
 from tkinter import *
 from tkinter import ttk
 import bigtree as bt
 import numpy as np
 
-global_time = time.time()
-
-#Defining the sequence class
 class Sequence:
 	"""This class is for representing sequences of DNA or RNA."""
 	def __init__(self, sequence: str|list):
@@ -357,7 +352,6 @@ class Sequence:
 	def cytocine_percent(self):
 		return self.percent_contents()[3]
 	
-#Defining the gene class
 class Gene(Sequence):
 	"""This class is for representing genes, derived from the Sequence class."""
 	def __init__(self, sequence: str|Sequence, exons: list = [[], []], name: str = "YES", description: str = "No description has been set", coding: bool = True):
@@ -433,7 +427,6 @@ class Gene(Sequence):
 			self.intron_sequences.append(self.seq[self.introns[intr]:self.introns[intr+1]:1])
 		return self.intron_sequences
 
-#Defining the intergenic sequence class
 class Intergenic(Sequence):
 	"""This class represents inter-genic sequences, derived from the Sequence class."""
 	def __init__(self, sequence, name = ""):
@@ -451,7 +444,6 @@ class Intergenic(Sequence):
 		"""Returns the lenght of the sequence."""
 		return self.lenght
 
-#Defining the chromosome class
 class Chromosome(Sequence):
 	"""This class represents a chromosome, chromosomes are sequences and thus this class inherits from the Sequence class."""
 	def __init__(self, sequence: str|Sequence, genes: list, centromer: int|float, name = ""):
@@ -469,7 +461,6 @@ class Chromosome(Sequence):
 		"""Returns the lenght of the chromosome's sequence."""
 		return len(self.seq) 
 
-#Defining the genome class
 class Genome(Sequence):
 	"""This class represents a genome, genomes are made of sequences and if you combine all the sequences you get one sequence for the entires genome thus this class inherits from the sequence class."""
 	def __init__(self, sequence, cpairs = [[[300, 400, 500], "1", 0.7, "AAT", True, False], []]):
@@ -484,7 +475,6 @@ class Genome(Sequence):
 		"""Returns the genome lenght."""
 		return self.length
 		
-#Defining the Person class
 class Person(Sequence):
 	"""This class represents one single person."""
 	def __init__(self, sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = (25, 50, 75, 100), k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")), genome = 10, ID = None, x_pos = 0, y_pos = 0):
@@ -540,7 +530,6 @@ class Person(Sequence):
 		frame.grid()
 		window.mainloop()
 
-#Defining the Population class
 class Population:
 	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", **instructions):
 		if isinstance(reference_sequence, Sequence):
@@ -743,7 +732,6 @@ class Population:
 
 def cmd_line_input():
 	"""Returns all command line argument inputs as variables for the program to use."""
-	# fetching user input
 	try:
 		parameters = {}
 		for i in range(1, len(sys.argv)):
@@ -891,27 +879,3 @@ def make_figures(size: list|tuple|set, ref: list|tuple|set):
 	plt.savefig(f"{cmd_line_input()['-o']}/RSR_output_folder/RSR Output Graphs.png")
 	return True
 
-# an example of how to use the classes and functions
-def main():
-	main_time = time.time()
-	cmd = cmd_line_input()
-	make_folders(cmd['-o'], "RSR_output_folder")
-	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"]))
-	output_file = os.path.join("RSR_output_folder", 'Results.txt')
-	generations_output = athens.generations(rate = cmd["-rate"], verbose = cmd["-v"], log = cmd["-log"], drift = cmd["-drift"], criteria = cmd["-criteria"])
-	with open(output_file, 'w') as out_file:
-		out_file.write(f"Reference sequence: {NCBI_parse(cmd_line_input()['-acc'])}\n\nPopulation:\n{generations_output[2]}")
-		make_figures(generations_output[0], generations_output[1])
-	print(f"""
-##############################################################################################################################################
-
-Process finished.\n\nParse results at {os.path.abspath(cmd_line_input()['-o'])}\RSR_output_folder within Results.txt and RSR Outpout Graph.png
-
-##############################################################################################################################################\n""")
-	main_end_time = time.time() - main_time
-	print(f"Took {main_end_time:.2f} seconds to run.\n")
-
-if __name__ == "__main__":
-	main()
-	
-global_end_time = time.time() - global_time
