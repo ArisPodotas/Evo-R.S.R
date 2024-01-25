@@ -174,6 +174,7 @@ def test_cmd_line_input():
 	assert cmd_line_input()['-gen'] == 100
 	assert cmd_line_input()['-size'] == 100
 	assert cmd_line_input()['-rate'] == 0.5
+	assert cmd_line_input()['-email'] == "a.Podotas@gmail.com"
 	assert cmd_line_input()["-v"] == False
 	assert cmd_line_input()["-q"] == True
 	# assert cmd_line_input()["-speed"] == 100
@@ -181,13 +182,14 @@ def test_cmd_line_input():
 	assert cmd_line_input()["-log"] == True
 	assert cmd_line_input()["-drift"] == 10 
 	assert cmd_line_input()["-criteria"] == 10 
-	with patch.object(sys, 'argv', ['cs50_final_project.py', '-o', '.', '-acc', 'AAAT', '-gen', '5', '-size', '100', '-rate', '0.5', "-v", "True", "-log", "True", "-drift", "10", "-criteria", "10"]):
+	with patch.object(sys, 'argv', ['cs50_final_project.py', '-o', '.', '-acc', 'AAAT', '-gen', '5', '-size', '100', '-rate', '0.5', "-email", "a.Podotas@gmail.com", "-v", "True", "-log", "True", "-drift", "10", "-criteria", "10"]):
 		assert cmd_line_input()['-acc'] == 'AAAT'
 		assert cmd_line_input()['-gen'] == 5
 		assert cmd_line_input()['-size'] == 100
 		assert cmd_line_input()['-rate'] == 0.5
 		assert cmd_line_input()["-v"] == True
 		assert cmd_line_input()["-q"] == False
+		assert cmd_line_input()['-email'] == "a.Podotas@gmail.com"
 		# assert cmd_line_input()["-speed"] == 99
 		# assert cmd_line_input()["-regression"] == True 
 		assert cmd_line_input()["-log"] == True
@@ -206,12 +208,12 @@ def test_cross():
 	assert athens.log != None
 
 def test_ncbi_parse():
-	assert NCBI_parse('LM378763.1') == "TAGCTTATCAGACTGATGTTGA"
+	assert NCBI_parse('LM378763.1', "a.Podotas@gmail.com") == "TAGCTTATCAGACTGATGTTGA"
 	with pytest.raises(ValueError):
-		NCBI_parse('hmnsou.1')
-		NCBI_parse("ATGCTAGCTTGATCTGTPPPPP")
-		NCBI_parse("ATTATATATATA88888888888")
-		NCBI_parse("ATGCTAGCTTGATCTGT.1")
+		NCBI_parse('hmnsou.1', "a.Podotas@gmail.com")
+		NCBI_parse("ATGCTAGCTTGATCTGTPPPPP", "a.Podotas@gmail.com")
+		NCBI_parse("ATTATATATATA88888888888", "a.Podotas@gmail.com")
+		NCBI_parse("ATGCTAGCTTGATCTGT.1", "a.Podotas@gmail.com")
 
 def test_make_figures():
 	athens = Population(generations = 10)
@@ -225,3 +227,4 @@ def test_Person():
 
 if __name__ == "__main__":
 	main()
+
