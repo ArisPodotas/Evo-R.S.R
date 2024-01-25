@@ -22,7 +22,7 @@ Evo R.S.R requires a 64-bit computer running either Linux or Mac OS X.
 
 # Install
 
-pip install Evo_R.S.R
+git pull https://github.com/ArisPodotas/Evo-R.S.R.git
 
 # Contributions
 

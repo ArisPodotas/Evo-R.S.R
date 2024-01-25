@@ -13,6 +13,7 @@ from Bio import SeqIO
 import sys
 import matplotlib.pyplot as plt
 import statistics as stat
+import time
 from tkinter import *
 from tkinter import ttk
 import bigtree as bt
@@ -543,11 +544,13 @@ class Population:
 			raise ValueError(f"Please input a valid value for the generations.\nMust be an integer: Expected number > 0.\nGot {generations}.\n")
 		if not isinstance(size, int):
 			raise ValueError(f"The size must be a positive number.\nExpected int within range(1 to + infinity), instead got {size}.\n")
+		# This variable and self.ancestors are a little redundant and this should be re made so that it works with self.family_tree
 		self.history = []
 		self.size = size
 		self.gen = generations
 		self.log = f""
 		self.slog = [self.size]
+		# self.sequences should contain sequences
 		self.sequences = []
 		self.ancestors = []
 		self.distances = []
@@ -560,13 +563,16 @@ class Population:
 		ttk.Button(self.window, text = "Quit", command = self.window.destroy).grid(column = 10, row = 10)
 		for _ in range(size):
 			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [self.reference.adenine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent() + self.reference.cytocine_percent()], k = len(self.reference)), ID = _ + 1, x_pos = random.randint(0, 10), y_pos = random.randint(0, 10))
+			# Shouldn't it be person.seq?
 			self.sequences.append(person)
 			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
 			self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
+			# Why dont I just do append person?
 			self.ancestors.append(str(self.sequences[_]))
 			self.distances.append(rounded_dist)
 		self.average.append(round(stat.mean(self.distances), 2))
 		self.history.append(self.sequences)
+		# We need more variabbles to be able to pass the recursive structure into the bigtree functions
 		self.ftree = ""
 		self.make_window()
 
@@ -593,6 +599,7 @@ class Population:
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
 		if drift < 0:
 			raise ValueError(f"Drift does not take negative values.\n")
+		# Why do we need this?
 		self.distances = []
 		self.ancestors = []
 		new = []
@@ -608,8 +615,10 @@ class Population:
 				print(f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.")
 			if log:
 				self.log += (f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.\n")
+			# Now self.ancestors becomes a list with people when before it had sequences
 			self.ancestors.append(person1)
 			self.ancestors.append(person2)
+			# New containt a person but then self.sequences turns to new so seqeunces does not contain sequences
 			new.append(person3)
 			self.distances.append(round(compare(self.reference.seq, person3.seq), 2))
 		if log:
@@ -661,7 +670,9 @@ class Population:
 			if log:
 				self.log += f"Person {person.id} {prevseq} has mutated to {person}.\n"
 		if log:
-			self.log += f"\n"
+			self.log += f"\n"                                               
+		# This seems redundant why cant i d one loop for all the selection? If not this way the loop number is variable and the results are un predictable 
+		# However if some smarter method for looping the individuals where to be made so that the loop can continue with the changing number
 		toremovelist = [] 
 		for person in self.sequences:
 			if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
@@ -679,6 +690,15 @@ class Population:
 			self.sequences.remove(ind)
 		self.size = len(self.sequences)
 
+	def family_tree(self,verbose: bool = False, log: bool = True):
+		if not isinstance(log, bool):
+			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
+		# self.ancestors worn't work here
+		# self.ftree = bt.list_to_tree(self.ancestors)
+		return self.ftree
+
 	def generations(self, rate: int|float = 0.5, drift: int|float = 10, criteria: int|float = 10, verbose: bool = False, log: bool = True) -> tuple:
 		"""Simulates te entire population throughout all of its life span."""
 		if not isinstance(drift, int|float):
@@ -692,6 +712,7 @@ class Population:
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
 		for cgen in range(self.gen):
+			# This is nice in the output but ugly in the code
 			info = f"""
 # ######################################################################
 
@@ -710,6 +731,11 @@ class Population:
 			for widget in self.frame.winfo_children():
 				widget.destroy()
 			self.make_window()
+			# Multiple if verbose
+			if verbose:
+				print(self.family_tree(verbose = verbose, log = log))
+			# Two if self.size <= 1?
+			# Both cross and mutate can kill the population hence the double if
 			if self.size <= 1:
 				self.slog.append(self.size)
 				print("The populations has died.\n")
@@ -732,6 +758,7 @@ class Population:
 
 def cmd_line_input():
 	"""Returns all command line argument inputs as variables for the program to use."""
+	# There must be a better way to add arguments
 	try:
 		parameters = {}
 		for i in range(1, len(sys.argv)):
@@ -743,7 +770,7 @@ def cmd_line_input():
 			elif arg == "-rate":
 				parameters[arg] = float(sys.argv[i + 1])
 			elif arg == "-h":
-				sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n")
+				sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n")
 				#sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100].\n[-regression][Allows the reference similarity to drop during the run].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n")
 			elif arg == "-v":
 				parameters[arg] = True
@@ -761,9 +788,13 @@ def cmd_line_input():
 				parameters[arg] = int(sys.argv[i + 1])
 			elif arg == "-criteria":
 				parameters[arg] = int(sys.argv[i + 1])
+			elif arg == "-email":
+				parameters[arg] = str(sys.argv[i + 1])
 		# setting default values
 		if "-rate" not in sys.argv:
 			parameters["-rate"] = 0.5
+		if "-email" not in sys.argv:
+			parameters["-rate"] = "a.Podotas@gmail.com"
 		if "-o" not in sys.argv:
 			parameters["-o"] = "."
 		if "-size" not in sys.argv:
@@ -794,17 +825,17 @@ def cmd_line_input():
 		if "-criteria" not in sys.argv:
 			parameters["-criteria"] = 10
 	except(ValueError):
-		sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in parameter value.\nGiven{sys.argv}.\n")
+		sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in parameter value.\nGiven{sys.argv}.\n")
 		#sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100].\n[-regression][Allows the reference similarity to drop during the run].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in parameter value.\nGiven{sys.argv}.\n")
 	for key in sys.argv[1::1]:
 		if key in parameters.keys() or key in str(parameters.values()) or key == ".\\test_project.py" or key == "test_project.py": 
 			continue
 		else:
-			sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
+			sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
 			#sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100].\n[-regression][Allows the reference similarity to drop during the run].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
 	return parameters
 
-def NCBI_parse(accession: str):
+def NCBI_parse(accession: str, email: str):
 	"""Returns the sequence of the command line as a usable variable and interprits NCBI accession sequences."""
 	# in case the input is a literal sequence
 	if not isinstance(accession, str):
@@ -813,7 +844,7 @@ def NCBI_parse(accession: str):
 		return str(accession)
 	# in case of -acc being an NCBI accession number, fetching sequence
 	elif re.search(r"(\w\d{5}.{0,3})|(\w{2}\d{6}.{0,3})", accession):
-		Entrez.email = "a.Podotas@gmail.com"
+		Entrez.email = email
 		entry = Entrez.efetch(db = "nucleotide", id = accession, retmode = "text", rettype = "gb")
 		for query in SeqIO.parse(entry, "gb"):
 			seq = str(query.seq)
@@ -849,6 +880,7 @@ def compare(seq1: Sequence|str|list|tuple|set, seq2: Sequence|str|list|tuple|set
 			if seq1[nucleotide] == seq2[nucleotide]:
 				matches += 1
 		return (matches/len(seq1))*100
+	# Make the cases exist
 	elif len(seq1) > len(seq2):
 		return 0
 	else:
@@ -878,4 +910,26 @@ def make_figures(size: list|tuple|set, ref: list|tuple|set):
 	plt.suptitle("RSR Output")
 	plt.savefig(f"{cmd_line_input()['-o']}/RSR_output_folder/RSR Output Graphs.png")
 	return True
+
+def main():
+	main_time = time.time()
+	cmd = cmd_line_input()
+	make_folders(cmd['-o'], "RSR_output_folder")
+	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"], cmd["-email"]))
+	output_file = os.path.join("RSR_output_folder", 'Results.txt')
+	generations_output = athens.generations(rate = cmd["-rate"], verbose = cmd["-v"], log = cmd["-log"], drift = cmd["-drift"], criteria = cmd["-criteria"])
+	with open(output_file, 'w') as out_file:
+		out_file.write(f"Reference sequence: {NCBI_parse(cmd['-acc'], cmd['-email'])}\n\nPopulation:\n{generations_output[2]}")
+		make_figures(generations_output[0], generations_output[1])
+	print(f"""
+##############################################################################################################################################
+
+Process finished.\n\nParse results at {os.path.abspath(cmd['-o'])}\RSR_output_folder within Results.txt and RSR Outpout Graph.png
+
+##############################################################################################################################################\n""")
+	main_end_time = time.time() - main_time
+	print(f"Took {main_end_time:.2f} seconds to run.\n")
+
+if __name__ == "__main__":
+	main()
 
