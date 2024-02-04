@@ -91,11 +91,8 @@ The Population class is contained within thr Person calss dispite not inheriting
 ### video overview of built in functionality:
 
 - www.youtube.com/watch?v=5FKgHpSOwxU
-<<<<<<< HEAD
 
 example.py contains the same base run as in the video
-=======
->>>>>>> 1ac4cc0b0e4ad09b0ff2c548623f18f29ef304c1
 
 ### video overview of classes, functions as a moduel:
 
@@ -115,7 +112,4 @@ The version of this repository is unique.
 # Citations:
 
 Needleman, S. B., & Wunsch, C. D. (1970). A general method applicable to the search for similarities in the amino acid sequence of two proteins. Journal of molecular biology, 48(3), 443–453. https://doi.org/10.1016/0022-2836(70)90057-4
-<<<<<<< HEAD
 
-=======
->>>>>>> 1ac4cc0b0e4ad09b0ff2c548623f18f29ef304c1
