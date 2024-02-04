@@ -277,7 +277,7 @@ class Sequence:
 			protein = ""
 			self.orfs = []
 			for reading_frame in range(codon_size):
-				saving=False
+				saving = False
 				for _ in range(reading_frame, len(self.seq), codon_size):
 					codon = self.seq[_:_ + codon_size:1] 
 					if len(codon) != codon_size:
@@ -289,7 +289,7 @@ class Sequence:
 						orf += codon 
 						protein+= genetic_code[codon]
 					if codon in stop_codons:
-						saving=False
+						saving = False
 						if nested:
 							_ = start_codon_position
 						if len(orf) >= codon_size * min_size:

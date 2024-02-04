@@ -2,12 +2,6 @@
 
 ![RSR Output Graphs](https://github.com/code50/134493368/assets/134493368/c671a05e-64f4-41db-983f-902374eb21df)
 
-### Links
-
-- add a github for the seperate project
-
-- add a github for the CS50P project
-
 # Contact
 
 [Aris Podotas](a.Podotas@gmail.com) [https://github.com/ArisPodotas] and [Rafail Adam](rafailadam46@gmail.com) [https://github.com/RafailTn]
@@ -73,8 +67,7 @@ python example.py
 python ".\Evo_R.S.R.py" -v -size 100 -gen 100 -rate 0.7 -regressions -o.
 ```
 
-- Built in functionality fow chart:
-========
+### Built in functionality fow chart:
 
 ![main dark mode excalidraw](https://github.com/code50/134493368/assets/134493368/b64a5610-3a35-474e-8f95-ef0bacd9f531)
 
@@ -102,14 +95,20 @@ example.py contains the same base run as in the video
 
 ### video overview of classes, functions as a moduel:
 
--
+- Pending
 
 # CS50P specific information
 
-Tree view of files and folders of cs50p:
+## Note
+
+This program was originally the final project for cs50P but has since grown into a standalone program.
+The version of this repository is unique.
+
+## Tree view of files and folders of cs50p:
 
 ![cs50p folder tree](https://github.com/code50/134493368/assets/134493368/9ba2478e-fc5e-4ff2-9f56-435f238a7369)
 
 # Citations:
 
 Needleman, S. B., & Wunsch, C. D. (1970). A general method applicable to the search for similarities in the amino acid sequence of two proteins. Journal of molecular biology, 48(3), 443–453. https://doi.org/10.1016/0022-2836(70)90057-4
+
