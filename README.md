@@ -12,7 +12,7 @@ Evo R.S.R is an algorithm written in python that tries to emulate, in a very sim
 
 # Getting started:
 
-Evo R.S.R requires a 64-bit computer running either Linux or Mac OS X. 
+Evo R.S.R requires a 64-bit computer running either Linux, windows or Mac OS X. 
 
 # Install
 
