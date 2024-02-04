@@ -35,6 +35,7 @@ git pull https://github.com/ArisPodotas/Evo-R.S.R.git
 [-q][Quiet: stops printing output (may increase speed)].
 [-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100]. 
 [-regression][Allows the reference similarity to drop during the run].
+[-email][Only use if fetching sequence from NCBI accession number].
 ```
 
 ### Population simulation with R.S.R
