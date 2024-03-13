@@ -14,6 +14,10 @@ Evo R.S.R is an algorithm written in python that tries to emulate, in a very sim
 
 Evo R.S.R requires a 64-bit computer running either Linux, windows or Mac OS X. 
 
+# Inspiration
+
+The idea comes from inquiries into ancetral sequence reconstruction and scientific articles like Mascotti M. L. (2022). Resurrecting Enzymes by Ancestral Sequence Reconstruction. Methods in molecular biology (Clifton, N.J.), 2397, 111–136. https://doi.org/10.1007/978-1-0716-1826-4_7
+
 # Install
 
 git pull https://github.com/ArisPodotas/Evo-R.S.R.git
