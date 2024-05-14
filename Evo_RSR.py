@@ -464,21 +464,21 @@ class Chromosome(Sequence):
 
 class Genome(Sequence):
 	"""This class represents a genome, genomes are made of sequences and if you combine all the sequences you get one sequence for the entires genome thus this class inherits from the sequence class."""
-	def __init__(self, sequence, cpairs = [[[300, 400, 500], "1", 0.7, "AAT", True, False], []]):
+	def __init__(self, sequence, cpairs = [[[300, 400, 500], "1", 0.7, "AAT", True, False], []]) -> None:
 		super().__init__(sequence)
 		self.length = cpairs
 
-	def __str__(self):
+	def __str__(self) -> int:
 		"""Returns the sets of chromosomes."""
 		return str(self.length)
 	
-	def __len__(self):
+	def __len__(self) -> int:
 		"""Returns the genome lenght."""
 		return self.length
 		
 class Person(Sequence):
 	"""This class represents one single person."""
-	def __init__(self, sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = (25, 50, 75, 100), k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")), genome = 10, ID = None, x_pos = 0, y_pos = 0):
+	def __init__(self, sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = (25, 50, 75, 100), k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")), genome = 10, ID = None, x_pos = 0, y_pos = 0) -> None:
 			if not isinstance(genome, int|list):
 				raise ValueError(f"The genome must be a list containing numbers.\nExpected something like {[1, 2, 3, 4, 5, 6, 7, 7, 8, 9, 10]} got {genome}.\n")
 			if ID != None and not isinstance(ID, int):
@@ -495,26 +495,30 @@ class Person(Sequence):
 			if not isinstance(y_pos, int) or y_pos < 0:
 				raise TypeError(f"The positions of the individual start form the left most top postition of the window thus they cannot be negative and not real numbers.\n")
 			super().__init__(sequence)
+			# Parametising the sequence
 			self.genome = genome
+			# Assigning a unique code to the individual
 			self.id = ID
+			# Coordinates
 			self.x_pos = x_pos
 			self.y_pos = y_pos
+			# Setting status
 			self.living = True
 
-	def __str__(self):
+	def __str__(self) -> int:
 		"""Returns the individuals sequence."""
 		return self.seq
 
-	def __len__(self):
+	def __len__(self) -> int:
 		"""Returns the persons sequence lenght."""
 		return len(self.seq)
 
-	def mutate(self, rate: int|float = 0.5):
+	def mutate(self, rate: int|float = 0.5) -> None:
 		"""Creates multiple point mutatuions for the person's sequnece using a rate instead of an ammount.
 		Alters the original sequence."""
 		self.mutations(ammount = math.ceil(len(self.seq) * rate), mutation_weights = {"point mutations": 20, "transversions": 40, "transitions": 60, "insertions": 60, "deletions": 60, "translocations": 80}) 
 
-	def move(self, x_ammount: int, y_ammount: int):
+	def move(self, x_ammount: int, y_ammount: int) -> None:
 		"""Changes the position of the individual."""
 		if not isinstance(x_ammount, int) or x_ammount < - self.x_pos:
 			raise TypeError(f"The x_pos cannot be negative or a non integer meaning that the x_ammount must not be a non integer and not less than the negative ammount of x_pos (so that x_pos + x_ammount !<0)")
@@ -523,7 +527,7 @@ class Person(Sequence):
 		self.x_pos += x_ammount
 		self.y_pos += y_ammount 
 
-	def make_window(self):
+	def make_window(self) -> None:
 		"""Creates a window with a grid representation of the persons position."""
 		window = Tk()
 		window.title("R.S.R. Simulation")
@@ -867,6 +871,7 @@ Creating output folder
 	new_folder_path = os.path.join(output_path, folder_name)
 	os.makedirs(new_folder_path, exist_ok = True)
 
+# Make it so that it uses the needleman wunsch
 def compare(seq1: Sequence|str|list|tuple|set, seq2: Sequence|str|list|tuple|set):
 	"""Sequence aligment based on Needleman - Wunsch"""
 	# calculates the percent identity of two sequences
