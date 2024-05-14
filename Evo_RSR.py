@@ -120,7 +120,7 @@ class Sequence:
 			self.seq = ''.join(self.seqls)
 		return self.seq
 
-	def mutations(self, ammount: int = 1, mutation_ammounts: dict = {"point mutations": 1, "transversions": 1, "transitions": 1, "insertions": 1, "deletions": 1, "translocations": 1}, mutation_weights: dict = {"point mutations": 20, "transversions": 40, "transitions": 60, "insertions": 80, "deletions": 100, "translocations": 120}):
+	def mutations(self, ammount: int = 1, mutation_weights: dict = {"point mutations": 20, "transversions": 40, "transitions": 60, "insertions": 80, "deletions": 100, "translocations": 120}):
 		"""Returns a sequence with random types of mutations at a specific rate.
 		Alters the original sequence."""
 		if not isinstance(ammount, int):
@@ -142,7 +142,12 @@ class Sequence:
 		modified_mutation_weights.append(mutation_weights["deletions"])
 		modified_mutation_weights.append(mutation_weights["translocations"])
 		for _ in range(ammount):
-			mut = random.choices([self.point_mutations, self.transversions, self.transitions, self.insertions, self.deletions, self.translocations], cum_weights = modified_mutation_weights)
+			mut = random.choices([self.point_mutations,
+						 self.transversions,
+						 self.transitions,
+						 self.insertions,
+						 self.deletions,
+						 self.translocations], cum_weights = modified_mutation_weights)
 			mut[0](ammount = 1)
 		return self.seq
 
@@ -550,21 +555,32 @@ class Population:
 			raise ValueError(f"The size must be a positive number.\nExpected int within range(1 to + infinity), instead got {size}.\n")
 		# This variable and self.ancestors are a little redundant and this should be re made so that it works with self.family_tree
 		self.history = []
+		# Number of people to start with
 		self.size = size
+		# Number of generations
 		self.gen = generations
+		# String where we output all the data of the seqeunces
 		self.log = f""
+		# A list that keep track of all the generations individual count
 		self.slog = [self.size]
-		# self.sequences should contain sequences
+		# A list of all the sequences of the individuals
 		self.sequences = []
 		self.ancestors = []
+		# Pending idea 
+		# A list that keeps all the individuals (as the data structure above)
+		# self.people = []
+		# A list of the distances from the reference
 		self.distances = []
+		# A list of the average reference similarity of a generation for each generation
 		self.average = []
+		# Tkinter stats
 		self.window = Tk()
 		self.window.geometry("1920x1080")
 		self.window.title("R.S.R. Simulation")
 		self.frame = ttk.Frame(self.window, padding = 10)
 		self.frame.grid()
 		ttk.Button(self.window, text = "Quit", command = self.window.destroy).grid(column = 10, row = 10)
+		# A loop to create all the individuals we start with
 		for _ in range(size):
 			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [self.reference.adenine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent() + self.reference.cytocine_percent()], k = len(self.reference)), ID = _ + 1, x_pos = random.randint(0, 10), y_pos = random.randint(0, 10))
 			# Shouldn't it be person.seq?
@@ -580,11 +596,11 @@ class Population:
 		self.ftree = ""
 		self.make_window()
 
-	def __str__(self):
+	def __str__(self) -> str:
 		"""Returns a log of all the people that are and ever have been in the population."""
 		return self.log
 
-	def __len__(self):
+	def __len__(self) -> int:
 		"""Returns the current ammount of individuals in the population."""
 		return self.size
 
@@ -753,7 +769,7 @@ class Population:
 				return self.slog, self.average, self.log
 		return self.slog, self.average, self.log
 		
-	def make_window(self):
+	def make_window(self) -> None:
 		"""Simulates the populations movements."""
 		for person in self.sequences:
 			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
