@@ -527,7 +527,7 @@ class Person(Sequence):
 		"""Creates a window with a grid representation of the persons position."""
 		window = Tk()
 		window.title("R.S.R. Simulation")
-		frame = ttk.Frame(window, padding = 10)
+		frame = ttk.Frame(window, padding = 20)
 		frame.grid()
 		window.mainloop()
 
@@ -794,7 +794,7 @@ def cmd_line_input():
 		if "-rate" not in sys.argv:
 			parameters["-rate"] = 0.5
 		if "-email" not in sys.argv:
-			parameters["-rate"] = "a.Podotas@gmail.com"
+			parameters["-email"] = "a.Podotas@gmail.com"
 		if "-o" not in sys.argv:
 			parameters["-o"] = "."
 		if "-size" not in sys.argv:
