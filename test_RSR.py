@@ -95,7 +95,7 @@ def test_genome():
 	gen = Genome("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC", [])
 
 def test_Person_1():
-	p0 = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG"))))
+	p0 = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG", "a.Podotas@gmail.com"))))
 	with pytest.raises(TypeError):
 		p0 = Person(sequence = 2)
 		po = Person(ID = "7")
@@ -106,14 +106,14 @@ def test_Person_1():
 		p0 = Person(sequence = "boy")
 		p0 = Person(genome = "2345432")
 		p0 = Person(genome = 33)
-	p = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG"))))
+	p = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG", "a.Podotas@gmail.com"))))
 	assert p.genome == 10
-	per = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG"))))
+	per = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG", "a.Podotas@gmail.com"))))
 	assert per.seq != None
 	assert per.seq != ""
 
 def test_mut_1():
-	pm = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG"))))
+	pm = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG", "a.Podotas@gmail.com"))))
 	assert pm.seq != pm.mutate()
 	with pytest.raises(ValueError):
 		pm.mutate(rate = -3)
@@ -129,7 +129,7 @@ def test_mut_1():
 #	 assert sum != p.allele2 + p.allele1
 
 def test_compare_1():
-	Person_compare = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG"))))
+	Person_compare = Person(sequence = random.choices(population = ["A", "T", "G", "C"], k = len(NCBI_parse("ATTTGCGTAG", "a.Podotas@gmail.com"))))
 	assert compare(Person_compare.seq, Person_compare.seq) == 100
 	before = Person_compare.seq
 	Person_compare.mutate()
@@ -208,12 +208,12 @@ def test_cross():
 	assert athens.log != None
 
 def test_ncbi_parse():
-	assert NCBI_parse('LM378763.1', "a.Podotas@gmail.com") == "TAGCTTATCAGACTGATGTTGA"
+	assert NCBI_parse('LM378763.1', email = "a.Podotas@gmail.com") == "TAGCTTATCAGACTGATGTTGA"
 	with pytest.raises(ValueError):
-		NCBI_parse('hmnsou.1', "a.Podotas@gmail.com")
-		NCBI_parse("ATGCTAGCTTGATCTGTPPPPP", "a.Podotas@gmail.com")
-		NCBI_parse("ATTATATATATA88888888888", "a.Podotas@gmail.com")
-		NCBI_parse("ATGCTAGCTTGATCTGT.1", "a.Podotas@gmail.com")
+		NCBI_parse('hmnsou.1', email = "a.Podotas@gmail.com")
+		NCBI_parse("ATGCTAGCTTGATCTGTPPPPP", email = "a.Podotas@gmail.com")
+		NCBI_parse("ATTATATATATA88888888888", email = "a.Podotas@gmail.com")
+		NCBI_parse("ATGCTAGCTTGATCTGT.1", email = "a.Podotas@gmail.com")
 
 def test_make_figures():
 	athens = Population(generations = 10)
