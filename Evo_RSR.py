@@ -565,7 +565,7 @@ class Population:
 		# A list that keeps all the individuals (as the data structure above)
 		self.people = []
 		# list of all generations
-		self.generations = []
+		self.generation = []
 		# String where we output all the data of the seqeunces
 		self.log = f""
 		# A list that keep track of all the generations individual count
@@ -751,8 +751,7 @@ class Population:
 			if log:
 				self.log += info + "\n" 
 			self.mutate(rate = rate, verbose = verbose, log = log, criteria = criteria, drift = drift)
-			for widget in self.frame.winfo_children():
-				self.make_window()
+			self.make_window()
 			# Multiple if verbose
 			if verbose:
 				print(self.family_tree(verbose = verbose, log = log))
