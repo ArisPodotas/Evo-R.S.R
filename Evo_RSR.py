@@ -509,6 +509,11 @@ class Person(Sequence):
 			self.y_pos = y_pos
 			# Setting status
 			self.living = True
+			# Set an image that represent the phenotype
+			os.mkdir("./tmp/", exist_ok = true)
+			self.phenotype = open(f"./tmp/person {self.id}.ppm", "w")
+			self.phenotype.write(f"P3\n3 3\n")
+			self.phenotype.close()
 
 	def __str__(self) -> int:
 		"""Returns the individuals sequence."""
@@ -553,22 +558,18 @@ class Population:
 			raise ValueError(f"Please input a valid value for the generations.\nMust be an integer: Expected number > 0.\nGot {generations}.\n")
 		if not isinstance(size, int):
 			raise ValueError(f"The size must be a positive number.\nExpected int within range(1 to + infinity), instead got {size}.\n")
-		# This variable and self.ancestors are a little redundant and this should be re made so that it works with self.family_tree
-		self.history = []
 		# Number of people to start with
 		self.size = size
 		# Number of generations
 		self.gen = generations
+		# A list that keeps all the individuals (as the data structure above)
+		self.people = []
+		# list of all generations
+		self.generations = []
 		# String where we output all the data of the seqeunces
 		self.log = f""
 		# A list that keep track of all the generations individual count
 		self.slog = [self.size]
-		# A list of all the sequences of the individuals
-		self.sequences = []
-		self.ancestors = []
-		# Pending idea 
-		# A list that keeps all the individuals (as the data structure above)
-		# self.people = []
 		# A list of the distances from the reference
 		self.distances = []
 		# A list of the average reference similarity of a generation for each generation
@@ -584,15 +585,13 @@ class Population:
 		for _ in range(size):
 			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [self.reference.adenine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent() + self.reference.cytocine_percent()], k = len(self.reference)), ID = _ + 1, x_pos = random.randint(0, 10), y_pos = random.randint(0, 10))
 			# Shouldn't it be person.seq?
-			self.sequences.append(person)
+			self.people.append(person)
 			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
 			self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
-			# Why dont I just do append person?
-			self.ancestors.append(str(self.sequences[_]))
 			self.distances.append(rounded_dist)
 		self.average.append(round(stat.mean(self.distances), 2))
-		self.history.append(self.sequences)
 		# We need more variabbles to be able to pass the recursive structure into the bigtree functions
+		# Family tree parameter
 		self.ftree = ""
 		self.make_window()
 
@@ -604,11 +603,9 @@ class Population:
 		"""Returns the current ammount of individuals in the population."""
 		return self.size
 
-	def cross(self, population: list|tuple|set, verbose: bool = False, log: bool = False, criteria: int|float = 10, drift: int|float = 10) -> None:
+	def cross(self, verbose: bool = False, log: bool = False, criteria: int|float = 10, drift: int|float = 10) -> None:
 		"""Picks two random individuals from the population and recombines their genome at a random location."""
 		# cross refers more so to a recombination for DNA of two individuals
-		if not isinstance(population, list|tuple|set):
-			raise TypeError(f"Population must be an iterable.\n Got {population}.\n")
 		if not isinstance(criteria, int|float):
 			raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
 		if not isinstance(drift, int|float):
@@ -625,10 +622,10 @@ class Population:
 		new = []
 		toremovelist = [] 
 		for loop in range(self.size * math.ceil(abs((self.slog[0] - self.size)/self.slog[len(self.slog) - 2])) + 5): 
-			person1 = random.choice(population)
-			person2 = random.choice(population)
+			person1 = random.choice(self.people)
+			person2 = random.choice(self.people)
 			while person1 == person2 and self.size > 1:
-				person2 = random.choice(population)
+				person2 = random.choice(self.people)
 			rec_position = random.randint(0, len(str(person1)) - 1)
 			person3 = Person(sequence = str(person1)[:rec_position:1] + str(person2)[rec_position::1], ID = loop + 1, x_pos = math.ceil((person2.x_pos + person1.x_pos)/2), y_pos = math.ceil((person2.y_pos + person1.y_pos)/2))
 			if verbose:
