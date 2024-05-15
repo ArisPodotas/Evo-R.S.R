@@ -510,7 +510,7 @@ class Person(Sequence):
 			# Setting status
 			self.living = True
 			# Set an image that represent the phenotype
-			os.mkdir("./tmp/", exist_ok = true)
+			os.makedirs("./tmp/", exist_ok = True)
 			self.phenotype = open(f"./tmp/person {self.id}.ppm", "w")
 			self.phenotype.write(f"P3\n3 3\n")
 			self.phenotype.close()
@@ -546,7 +546,7 @@ class Person(Sequence):
 		window.mainloop()
 
 class Population:
-	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", **instructions):
+	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", **instructions) -> None:
 		if isinstance(reference_sequence, Sequence):
 			self.reference = reference_sequence.seq	
 		else:
@@ -581,16 +581,24 @@ class Population:
 		self.frame = ttk.Frame(self.window, padding = 10)
 		self.frame.grid()
 		ttk.Button(self.window, text = "Quit", command = self.window.destroy).grid(column = 10, row = 10)
+		# Defining int for the following loop so that functions don't keep calculating the same numbers
+		adenine = self.reference.adenine_percent() 
+		thymine = adenine + self.reference.thymine_percent() 
+		guanine = thymine + self.reference.guanine_percent()
+		cytocine = guanine + self.reference.cytocine_percent()
 		# A loop to create all the individuals we start with
 		for _ in range(size):
-			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [self.reference.adenine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent(), self.reference.adenine_percent() + self.reference.thymine_percent() + self.reference.guanine_percent() + self.reference.cytocine_percent()], k = len(self.reference)), ID = _ + 1, x_pos = random.randint(0, 10), y_pos = random.randint(0, 10))
+			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
+			   k = len(self.reference)),
+			   ID = _ + 1,
+			   x_pos = random.randint(0, 10),
+			   y_pos = random.randint(0, 10))
 			# Shouldn't it be person.seq?
 			self.people.append(person)
 			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
 			self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
 			self.distances.append(rounded_dist)
 		self.average.append(round(stat.mean(self.distances), 2))
-		# We need more variabbles to be able to pass the recursive structure into the bigtree functions
 		# Family tree parameter
 		self.ftree = ""
 		self.make_window()
@@ -618,48 +626,45 @@ class Population:
 			raise ValueError(f"Drift does not take negative values.\n")
 		# Why do we need this?
 		self.distances = []
-		self.ancestors = []
 		new = []
-		toremovelist = [] 
-		for loop in range(self.size * math.ceil(abs((self.slog[0] - self.size)/self.slog[len(self.slog) - 2])) + 5): 
+		toremovelist = []
+		loops = self.size * math.ceil(abs((self.slog[0] - self.size)/self.slog[len(self.slog) - 2])) + 5
+		for loop in range(loops):
 			person1 = random.choice(self.people)
 			person2 = random.choice(self.people)
 			while person1 == person2 and self.size > 1:
 				person2 = random.choice(self.people)
 			rec_position = random.randint(0, len(str(person1)) - 1)
-			person3 = Person(sequence = str(person1)[:rec_position:1] + str(person2)[rec_position::1], ID = loop + 1, x_pos = math.ceil((person2.x_pos + person1.x_pos)/2), y_pos = math.ceil((person2.y_pos + person1.y_pos)/2))
+			person3 = Person(sequence = str(person1)[:rec_position:1] + str(person2)[rec_position::1],
+					ID = loop + 1,
+					x_pos = math.ceil((person2.x_pos + person1.x_pos)/2),
+					y_pos = math.ceil((person2.y_pos + person1.y_pos)/2))
 			if verbose:
 				print(f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.")
 			if log:
 				self.log += (f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.\n")
-			# Now self.ancestors becomes a list with people when before it had sequences
-			self.ancestors.append(person1)
-			self.ancestors.append(person2)
 			# New containt a person but then self.sequences turns to new so seqeunces does not contain sequences
 			new.append(person3)
 			self.distances.append(round(compare(self.reference.seq, person3.seq), 2))
 		if log:
 			self.log += f"\n"
-		self.sequences = new
-		self.size = len(self.sequences)
+		self.people = new
+		self.size = len(self.people)
 		self.average.append(round(stat.mean(self.distances), 2))
-		self.history.append(self.ancestors)
-		for person in self.sequences:
+		for person in self.size:
 			if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
 				if verbose:
 					print(f"Person {person.id} {person} has not reached adulthood.")
 				if log:
 					self.log += (f"Person {person.id} {person} has not reached adulthood.\n")
-				toremovelist.append(person)
+				self.people.remove(person)
 			else:
 				if verbose:
 					print(f"Person {person.id} {person.seq} has reached adulthood.")
 				if log:
 					self.log += f"Person {person.id} {person.seq} has reached adulthood.\n"
-		for ind in toremovelist:
-			"add the removal from the gui in here"
-			self.sequences.remove(ind)
-		self.size = len(self.sequences)
+		# add the removal from the gui in here
+		self.size = len(self.people)
 
 	def mutate(self, rate: int|float = 0.5, verbose: bool = False, log: bool = False, criteria: int|float = 10, drift: int|float = 10) -> None:
 		"""Mutates every individual of the population."""
