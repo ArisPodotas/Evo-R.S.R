@@ -204,7 +204,7 @@ def test_cmd_line_input():
 
 def test_cross():
 	athens = Population()
-	athens.cross(athens.sequences)
+	athens.cross()
 	assert athens.log != None
 
 def test_ncbi_parse():

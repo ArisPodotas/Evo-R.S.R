@@ -589,10 +589,10 @@ class Population:
 		# A loop to create all the individuals we start with
 		for _ in range(size):
 			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
-			   k = len(self.reference)),
-			   ID = _ + 1,
-			   x_pos = random.randint(0, 10),
-			   y_pos = random.randint(0, 10))
+				k = len(self.reference)),
+				ID = _ + 1,
+				x_pos = random.randint(0, 10),
+				y_pos = random.randint(0, 10))
 			# Shouldn't it be person.seq?
 			self.people.append(person)
 			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
@@ -627,7 +627,6 @@ class Population:
 		# Why do we need this?
 		self.distances = []
 		new = []
-		toremovelist = []
 		loops = self.size * math.ceil(abs((self.slog[0] - self.size)/self.slog[len(self.slog) - 2])) + 5
 		for loop in range(loops):
 			person1 = random.choice(self.people)
@@ -651,20 +650,24 @@ class Population:
 		self.people = new
 		self.size = len(self.people)
 		self.average.append(round(stat.mean(self.distances), 2))
-		for person in self.size:
+		toremovelist = []
+		for person in self.people:
 			if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
 				if verbose:
 					print(f"Person {person.id} {person} has not reached adulthood.")
 				if log:
 					self.log += (f"Person {person.id} {person} has not reached adulthood.\n")
-				self.people.remove(person)
+				toremovelist.append(person)
 			else:
 				if verbose:
 					print(f"Person {person.id} {person.seq} has reached adulthood.")
-				if log:
+			if log:
 					self.log += f"Person {person.id} {person.seq} has reached adulthood.\n"
 		# add the removal from the gui in here
+		for ind in toremovelist:
+			self.people.remove(ind)
 		self.size = len(self.people)
+		self.slog.append(self.size)
 
 	def mutate(self, rate: int|float = 0.5, verbose: bool = False, log: bool = False, criteria: int|float = 10, drift: int|float = 10) -> None:
 		"""Mutates every individual of the population."""
@@ -683,7 +686,7 @@ class Population:
 		if rate <= 0:
 			raise ValueError(f"rate must be positive non 0.\nGiven {rate}.\n")
 		self.distances = []
-		for person in self.sequences:
+		for person in self.people:
 			prevseq = person.seq
 			person.mutate(rate = rate)
 			self.distances.append(round(compare(self.reference.seq, person.seq), 2))
@@ -692,11 +695,9 @@ class Population:
 			if log:
 				self.log += f"Person {person.id} {prevseq} has mutated to {person}.\n"
 		if log:
-			self.log += f"\n"                                               
-		# This seems redundant why cant i d one loop for all the selection? If not this way the loop number is variable and the results are un predictable 
-		# However if some smarter method for looping the individuals where to be made so that the loop can continue with the changing number
-		toremovelist = [] 
-		for person in self.sequences:
+			self.log += f"\n"
+		toremovelist = []
+		for person in self.people:
 			if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
 				if verbose:
 					print(f"Person {person.id} {person} has not lived long enough to see the next generation.")
@@ -709,8 +710,8 @@ class Population:
 				if log:
 					self.log += f"Person {person.id} {person.seq} has lived long enough to see the next generation.\n"
 		for ind in toremovelist:
-			self.sequences.remove(ind)
-		self.size = len(self.sequences)
+			self.people.remove(ind)
+		self.size = len(self.people)
 
 	def family_tree(self,verbose: bool = False, log: bool = True):
 		if not isinstance(log, bool):
@@ -751,8 +752,7 @@ class Population:
 				self.log += info + "\n" 
 			self.mutate(rate = rate, verbose = verbose, log = log, criteria = criteria, drift = drift)
 			for widget in self.frame.winfo_children():
-				widget.destroy()
-			self.make_window()
+				self.make_window()
 			# Multiple if verbose
 			if verbose:
 				print(self.family_tree(verbose = verbose, log = log))
@@ -763,8 +763,7 @@ class Population:
 				print("The populations has died.\n")
 				self.log += "The populations has died."
 				return self.slog, self.average, self.log
-			self.cross(population = self.sequences, verbose = verbose, log = log, criteria = criteria, drift = drift)
-			self.slog.append(self.size)
+			self.cross(verbose = verbose, log = log, criteria = criteria, drift = drift)
 			if self.size <= 1:
 				print("The populations has died.\n")
 				self.log += "The populations has died."
@@ -773,7 +772,7 @@ class Population:
 		
 	def make_window(self) -> None:
 		"""Simulates the populations movements."""
-		for person in self.sequences:
+		for person in self.people:
 			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
 			ttk.Label(self.frame, text = person.id).grid(column = person.x_pos, row = person.y_pos)
 		self.window.update()
