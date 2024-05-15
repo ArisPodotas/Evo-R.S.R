@@ -751,6 +751,8 @@ class Population:
 			if log:
 				self.log += info + "\n" 
 			self.mutate(rate = rate, verbose = verbose, log = log, criteria = criteria, drift = drift)
+			for widget in self.frame.winfo_children():
+				widget.destroy()
 			self.make_window()
 			# Multiple if verbose
 			if verbose:
