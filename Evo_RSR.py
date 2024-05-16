@@ -510,10 +510,6 @@ class Person(Sequence):
 			# Setting status
 			self.living = True
 			# Set an image that represent the phenotype
-			os.makedirs("./tmp/", exist_ok = True)
-			self.phenotype = open(f"./tmp/person {self.id}.ppm", "w")
-			self.phenotype.write(f"P3\n3 3\n")
-			self.phenotype.close()
 
 	def __str__(self) -> int:
 		"""Returns the individuals sequence."""
@@ -536,6 +532,13 @@ class Person(Sequence):
 			raise TypeError(f"The y_pos cannot be negative or a non integer meaning that the y_ammount must not be a non integer and not less than the negative ammount of y_pos (so that y_pos + y_ammount !<0)")
 		self.x_pos += x_ammount
 		self.y_pos += y_ammount 
+
+	def phenotype(self, reference: Sequence|str|list):
+		self.compare = compare(reference, self.seq)
+		os.makedirs("./tmp/", exist_ok = True)
+		self.phenotype = open(f"./tmp/person {self.id}.ppm", "w")
+		self.phenotype.write(f"P3\n1 1\n0 {round(self.compare * 2.55)} 0\n")
+		self.phenotype.close()
 
 	def make_window(self) -> None:
 		"""Creates a window with a grid representation of the persons position."""
@@ -570,7 +573,7 @@ class Population:
 		self.log = f""
 		# A list that keep track of all the generations individual count
 		self.slog = [self.size]
-		# A list of the distances from the reference
+		# A temporary list of the distances from the reference
 		self.distances = []
 		# A list of the average reference similarity of a generation for each generation
 		self.average = []
@@ -593,11 +596,13 @@ class Population:
 				ID = _ + 1,
 				x_pos = random.randint(0, 10),
 				y_pos = random.randint(0, 10))
+			person.phenotype(self.reference.seq)
 			# Shouldn't it be person.seq?
 			self.people.append(person)
 			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
 			self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
 			self.distances.append(rounded_dist)
+		self.generation.append(self.people)
 		self.average.append(round(stat.mean(self.distances), 2))
 		# Family tree parameter
 		self.ftree = ""
@@ -624,25 +629,28 @@ class Population:
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
 		if drift < 0:
 			raise ValueError(f"Drift does not take negative values.\n")
-		# Why do we need this?
-		self.distances = []
 		new = []
+		self.distances = []
+		# Calculate new population size based on ammount of children
 		loops = self.size * math.ceil(abs((self.slog[0] - self.size)/self.slog[len(self.slog) - 2])) + 5
 		for loop in range(loops):
 			person1 = random.choice(self.people)
+			# Pick person 2 as one of the local residents lets say
 			person2 = random.choice(self.people)
+			# Making sure it's not the same person
 			while person1 == person2 and self.size > 1:
 				person2 = random.choice(self.people)
+			# The parents recombination
 			rec_position = random.randint(0, len(str(person1)) - 1)
+			# The child
 			person3 = Person(sequence = str(person1)[:rec_position:1] + str(person2)[rec_position::1],
 					ID = loop + 1,
-					x_pos = math.ceil((person2.x_pos + person1.x_pos)/2),
-					y_pos = math.ceil((person2.y_pos + person1.y_pos)/2))
+					x_pos = round((person2.x_pos + person1.x_pos)/2),
+					y_pos = round((person2.y_pos + person1.y_pos)/2))
 			if verbose:
 				print(f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.")
 			if log:
 				self.log += (f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.\n")
-			# New containt a person but then self.sequences turns to new so seqeunces does not contain sequences
 			new.append(person3)
 			self.distances.append(round(compare(self.reference.seq, person3.seq), 2))
 		if log:
@@ -650,6 +658,7 @@ class Population:
 		self.people = new
 		self.size = len(self.people)
 		self.average.append(round(stat.mean(self.distances), 2))
+		# Loop to kill off people
 		toremovelist = []
 		for person in self.people:
 			if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
@@ -774,7 +783,7 @@ class Population:
 	def make_window(self) -> None:
 		"""Simulates the populations movements."""
 		for person in self.people:
-			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
+			# person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
 			ttk.Label(self.frame, text = person.id).grid(column = person.x_pos, row = person.y_pos)
 		self.window.update()
 
