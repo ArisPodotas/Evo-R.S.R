@@ -509,7 +509,6 @@ class Person(Sequence):
 			self.y_pos = y_pos
 			# Setting status
 			self.living = True
-			# Set an image that represent the phenotype
 
 	def __str__(self) -> int:
 		"""Returns the individuals sequence."""
@@ -534,10 +533,11 @@ class Person(Sequence):
 		self.y_pos += y_ammount 
 
 	def phenotype(self, reference: Sequence|str|list):
+		"""Set an image that represent the phenotype"""
 		self.compare = compare(reference, self.seq)
 		os.makedirs("./tmp/", exist_ok = True)
 		self.phenotype = open(f"./tmp/person {self.id}.ppm", "w")
-		self.phenotype.write(f"P3\n1 1\n0 {round(self.compare * 2.55)} 0\n")
+		self.phenotype.write(f"P3\n1 1 255\n0 {round(self.compare * 2.55)} 0\n\n")
 		self.phenotype.close()
 
 	def make_window(self) -> None:
@@ -731,6 +731,9 @@ class Population:
 		# self.ftree = bt.list_to_tree(self.ancestors)
 		return self.ftree
 
+	def filter(self):
+		return None
+
 	def generations(self, rate: int|float = 0.5, drift: int|float = 10, criteria: int|float = 10, verbose: bool = False, log: bool = True) -> tuple:
 		"""Simulates te entire population throughout all of its life span."""
 		if not isinstance(drift, int|float):
@@ -743,6 +746,11 @@ class Population:
 			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
+		# Loop generations
+		# Loop individuals
+		# Cross
+		# Mutate
+		# Filter
 		for cgen in range(self.gen):
 			# This is nice in the output but ugly in the code
 			info = f"""
@@ -943,6 +951,13 @@ def make_figures(size: list|tuple|set, ref: list|tuple|set):
 	plt.savefig(f"{cmd_line_input()['-o']}/RSR_output_folder/RSR Output Graphs.png")
 	return True
 
+def filtering():
+	"""Option to save the imges of the population into a tmp folder"""
+	path = "./tmp/"
+	for file in os.listdir(path):
+		os.remove(path + file)
+	os.rmdir(path)
+
 def main():
 	main_time = time.time()
 	cmd = cmd_line_input()
@@ -961,6 +976,7 @@ Process finished.\n\nParse results at {os.path.abspath(cmd['-o'])}\RSR_output_fo
 ##############################################################################################################################################\n""")
 	main_end_time = time.time() - main_time
 	print(f"Took {main_end_time:.2f} seconds to run.\n")
+	filtering()
 
 if __name__ == "__main__":
 	main()
