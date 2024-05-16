@@ -684,8 +684,10 @@ class Population:
 		self.size = len(self.people)
 		self.average.append(round(stat.mean(self.distances), 2))
 
-	def mutate(self, rate: int|float = 0.5, verbose: bool = False, log: bool = False) -> None:
+	def mutate(self, person: Person, rate: int|float = 0.5, verbose: bool = False, log: bool = False) -> None:
 		"""Mutates every individual of the population."""
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
 		if not isinstance(rate, int|float):
 			raise TypeError(f"Please give numeral rate.\nGot {rate}.\n")
 		if not isinstance(verbose, bool):
@@ -694,17 +696,13 @@ class Population:
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
 		if rate <= 0:
 			raise ValueError(f"rate must be positive non 0.\nGiven {rate}.\n")
-		self.distances = []
-		for person in self.people:
-			prevseq = person.seq
-			person.mutate(rate = rate)
-			self.distances.append(round(compare(self.reference.seq, person.seq), 2))
-			if verbose:
-				print(f"Person {person.id} {prevseq} has mutated to {person}.")
-			if log:
-				self.log += f"Person {person.id} {prevseq} has mutated to {person}.\n"
+		prevseq = person.seq
+		person.mutate(rate = rate)
+		self.distances.append(round(compare(self.reference.seq, person.seq), 2))
+		if verbose:
+			print(f"Person {person.id} {prevseq} has mutated to {person}.")
 		if log:
-			self.log += f"\n"
+			self.log += f"Person {person.id} {prevseq} has mutated to {person}.\n\n"
 
 	def family_tree(self,verbose: bool = False, log: bool = True):
 		if not isinstance(log, bool):
@@ -728,12 +726,7 @@ class Population:
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
 		# Loop generations
-		# Loop individuals
-		# Cross
-		# Mutate
-		# Filter
 		for cgen in range(self.gen):
-			# This is nice in the output but ugly in the code
 			info = f"""
 # ######################################################################
 
@@ -748,7 +741,16 @@ class Population:
 				print(info)
 			if log:
 				self.log += info + "\n" 
-			self.mutate(rate = rate, verbose = verbose, log = log)
+			# Loop individuals
+			for person in self.people:
+				pass
+				# Mutate
+				self.mutate(rate = rate, verbose = verbose, log = log)
+				# Cross
+				# Definie the ammount of offspting
+				loops = 
+				# Filter
+			# This is nice in the output but ugly in the code
 			self.filter(text = "Person {id} {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, criteria = criteria, drift = drift)
 			for widget in self.frame.winfo_children():
 				widget.destroy()
@@ -774,7 +776,7 @@ class Population:
 	def make_window(self) -> None:
 		"""Simulates the populations movements."""
 		for person in self.people:
-			# person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
+			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
 			ttk.Label(self.frame, text = person.id).grid(column = person.x_pos, row = person.y_pos)
 		self.window.update()
 
