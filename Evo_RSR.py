@@ -569,6 +569,8 @@ class Population:
 		self.people = []
 		# list of all generations
 		self.generation = []
+		for loop in range(self.gen):
+			self.generation.append([])
 		# String where we output all the data of the seqeunces
 		self.log = f""
 		# A list that keep track of all the generations individual count
@@ -602,7 +604,7 @@ class Population:
 			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
 			self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
 			self.distances.append(rounded_dist)
-		self.generation.append(self.people)
+		self.generation[0] = self.people
 		self.average.append(round(stat.mean(self.distances), 2))
 		# Family tree parameter
 		self.ftree = ""
@@ -616,7 +618,10 @@ class Population:
 		"""Returns the current ammount of individuals in the population."""
 		return self.size
 
-	def filter(self, text: str, verbose: bool, log: bool, criteria: int|float = 10, drift: int|float = 10):
+	def filter(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10, drift: int|float = 10):
+		"""Removes unfit individuals"""
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
 		if not isinstance(criteria, int|float):
 			raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
 		if not isinstance(drift, int|float):
@@ -628,64 +633,57 @@ class Population:
 		if drift < 0:
 			raise ValueError(f"Drift does not take negative values.\n")
 		# Loop that removes people
-		toremovelist = []
-		for person in self.people:
-			if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
-				toremovelist.append(person)
-				if verbose:
-					print(text.format(id = person.id, ind = person))
-				if log:
-					self.log += text.format(id = person.id, ind = person)
-			else:
-				if verbose:
-					print(text.format(id = person.id, ind = person))
-				if log:
-					self.log += text.format(id = person.id, ind = person)
-		# Add removal from the gui
-		for ind in toremovelist:
-			self.people.remove(ind)
-		self.size = len(self.people)
-		self.slog.append(self.size)
+		if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
+			person.living = False
+			if verbose:
+				print(text.format(id = person.id, ind = person))
+			if log:
+				self.log += text.format(id = person.id, ind = person)
+		else:
+			if verbose:
+				print(text.format(id = person.id, ind = person))
+			if log:
+				self.log += text.format(id = person.id, ind = person)
 
-	def cross(self, verbose: bool = False, log: bool = False) -> None:
-		"""Picks two random individuals from the population and recombines their genome at a random location."""
+	def cross(self, person: Person, verbose: bool = False, log: bool = False) -> None:
+		"""Picks how many kids and with who the person given has"""
 		# cross refers more so to a recombination for DNA of two individuals
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
 		if not isinstance(verbose, bool):
 			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
 		if not isinstance(log, bool):
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
-		new = []
-		self.distances = []
-		# Calculate new population size based on ammount of children
-		loops = self.size * math.ceil(abs((self.slog[0] - self.size)/self.slog[len(self.slog) - 2])) + 5
+		# How many children the individual has
+		loops = round(compare(person.seq, self.reference.seq) % 10)
+		if loops == 0:
+			if verbose:
+				print(f"Person {person.id}: {str(person)} Has not had any children\n")
+			if log:
+				self.log += (f"Person {person.id}: {str(person)} Has not had any children\n")
+			return None
 		for loop in range(loops):
+			# Random mate choice
 			person1 = random.choice(self.people)
-			# Pick person 2 as one of the local residents lets say
-			person2 = random.choice(self.people)
 			# Making sure it's not the same person
-			while person1 == person2 and self.size > 1:
-				person2 = random.choice(self.people)
+			while person == person1 and self.size > 1:
+				person1 = random.choice(self.people)
 			# The parents recombination
 			rec_position = random.randint(0, len(str(person1)) - 1)
 			# The child
-			person3 = Person(sequence = str(person1)[:rec_position:1] + str(person2)[rec_position::1],
+			person3 = Person(sequence = str(person)[:rec_position:1] + str(person1)[rec_position::1],
 					ID = loop + 1,
-					x_pos = round((person2.x_pos + person1.x_pos)/2),
-					y_pos = round((person2.y_pos + person1.y_pos)/2))
+					x_pos = round((person1.x_pos + person.x_pos)/2),
+					y_pos = round((person1.y_pos + person.y_pos)/2))
 			if verbose:
-				print(f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.")
+				print(f"Person {person1.id}: {str(person1)} x Person {person.id}: {str(person)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.")
 			if log:
-				self.log += (f"Person {person1.id}: {str(person1)} x Person {person2.id}: {str(person2)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.\n")
-			new.append(person3)
+				self.log += (f"Person {person1.id}: {str(person1)} x Person {person.id}: {str(person)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.\n")
+			self.generation[self.cgen + 1].append(person3)
 			self.distances.append(round(compare(self.reference.seq, person3.seq), 2))
-		if log:
-			self.log += f"\n"
-		self.people = new
-		self.size = len(self.people)
-		self.average.append(round(stat.mean(self.distances), 2))
 
 	def mutate(self, person: Person, rate: int|float = 0.5, verbose: bool = False, log: bool = False) -> None:
-		"""Mutates every individual of the population."""
+		"""Mutates the individual of the population given."""
 		if not isinstance(person, Person):
 			raise TypeError(f"Please give the individual that needs to be mutated\n")
 		if not isinstance(rate, int|float):
@@ -726,15 +724,15 @@ class Population:
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
 		# Loop generations
-		for cgen in range(self.gen):
+		for self.cgen in range(self.gen - 1):
 			info = f"""
 # ######################################################################
 
-# Generation: {cgen + 1}
+# Generation: {self.cgen + 1}
 
 # Population size: {self.size}
 
-# Average population reference similarity: {self.average[cgen]}
+# Average population reference similarity: {self.average[self.cgen]}
 
 # ######################################################################\n"""
 			if verbose:
@@ -742,16 +740,22 @@ class Population:
 			if log:
 				self.log += info + "\n" 
 			# Loop individuals
-			for person in self.people:
+			self.distances = []
+			copy = self.people
+			for person in copy:
 				pass
 				# Mutate
-				self.mutate(rate = rate, verbose = verbose, log = log)
+				self.mutate(person = person, rate = rate, verbose = verbose, log = log)
+				self.filter(person = person, text = "Person {id} {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, criteria = criteria, drift = drift)
 				# Cross
 				# Definie the ammount of offspting
-				loops = 
-				# Filter
-			# This is nice in the output but ugly in the code
-			self.filter(text = "Person {id} {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, criteria = criteria, drift = drift)
+				self.cross(person = person, verbose = verbose, log = log)
+				self.filter(person = person, text = "Person {id} {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria, drift = drift)
+			for person in copy:
+				if person.living == False:
+					self.generation[self.cgen].remove(person)
+			self.people = self.generation[self.cgen + 1]
+			self.average.append(round(stat.mean(self.distances), 2))
 			for widget in self.frame.winfo_children():
 				widget.destroy()
 			self.make_window()
@@ -765,8 +769,6 @@ class Population:
 				print("The populations has died.\n")
 				self.log += "The populations has died."
 				return self.slog, self.average, self.log
-			self.cross(verbose = verbose, log = log)
-			self.filter(text = "Person {id} {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria, drift = drift)
 			if self.size <= 1:
 				print("The populations has died.\n")
 				self.log += "The populations has died."
@@ -777,6 +779,10 @@ class Population:
 		"""Simulates the populations movements."""
 		for person in self.people:
 			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
+			if person.x_pos > 100:
+				person.x_pos = 100
+			if person.y_pos > 100:
+				person.y_pos = 100
 			ttk.Label(self.frame, text = person.id).grid(column = person.x_pos, row = person.y_pos)
 		self.window.update()
 
@@ -936,12 +942,17 @@ def make_figures(size: list|tuple|set, ref: list|tuple|set):
 	plt.savefig(f"{cmd_line_input()['-o']}/RSR_output_folder/RSR Output Graphs.png")
 	return True
 
-def filtering():
+def remove_tmp(log: bool):
 	"""Option to save the imges of the population into a tmp folder"""
-	path = "./tmp/"
-	for file in os.listdir(path):
-		os.remove(path + file)
-	os.rmdir(path)
+	if not isinstance(log, bool):
+		raise TypeError(f"Function parameter has ivalid argument log. Please give a boolian value\n")
+	if log:
+		path = "./tmp/"
+		for file in os.listdir(path):
+			os.remove(path + file)
+		os.rmdir(path)
+	else:
+		pass
 
 def main():
 	main_time = time.time()
@@ -961,7 +972,7 @@ Process finished.\n\nParse results at {os.path.abspath(cmd['-o'])}\RSR_output_fo
 ##############################################################################################################################################\n""")
 	main_end_time = time.time() - main_time
 	print(f"Took {main_end_time:.2f} seconds to run.\n")
-	filtering()
+	remove_tmp(cmd["-log"])
 
 if __name__ == "__main__":
 	main()
