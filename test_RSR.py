@@ -142,6 +142,8 @@ def test_Population_1():
 	malta = Population()
 	assert str(malta) != ""
 	assert malta.reference.seq == "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC"
+	other = Population(homogeneous = True)
+	assert other.people[1].seq == other.people[2].seq == other.reference.seq
 	with pytest.raises(ValueError):
 		czechia = Population(generations = -3)
 		andorra = Population(generations = "hgj")
@@ -177,12 +179,13 @@ def test_cmd_line_input():
 	assert cmd_line_input()['-email'] == "a.Podotas@gmail.com"
 	assert cmd_line_input()["-v"] == False
 	assert cmd_line_input()["-q"] == True
+	assert cmd_line_input()["-hom"] == False
 	# assert cmd_line_input()["-speed"] == 100
 	# assert cmd_line_input()["-regression"] == False
 	assert cmd_line_input()["-log"] == True
 	assert cmd_line_input()["-drift"] == 10 
 	assert cmd_line_input()["-criteria"] == 10 
-	with patch.object(sys, 'argv', ['cs50_final_project.py', '-o', '.', '-acc', 'AAAT', '-gen', '5', '-size', '100', '-rate', '0.5', "-email", "a.Podotas@gmail.com", "-v", "True", "-log", "True", "-drift", "10", "-criteria", "10"]):
+	with patch.object(sys, 'argv', ['cs50_final_project.py', '-o', '.', '-acc', 'AAAT', '-gen', '5', '-size', '100', '-rate', '0.5', "-email", "a.Podotas@gmail.com", "-v", "True", "-log", "True", "-drift", "10", "-criteria", "10", "-hom", "False"]):
 		assert cmd_line_input()['-acc'] == 'AAAT'
 		assert cmd_line_input()['-gen'] == 5
 		assert cmd_line_input()['-size'] == 100
@@ -190,6 +193,7 @@ def test_cmd_line_input():
 		assert cmd_line_input()["-v"] == True
 		assert cmd_line_input()["-q"] == False
 		assert cmd_line_input()['-email'] == "a.Podotas@gmail.com"
+		assert cmd_line_input()["-hom"] == False
 		# assert cmd_line_input()["-speed"] == 99
 		# assert cmd_line_input()["-regression"] == True 
 		assert cmd_line_input()["-log"] == True

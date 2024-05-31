@@ -535,8 +535,7 @@ class Person(Sequence):
 	def phenotype(self, reference: Sequence|str|list):
 		"""Set an image that represent the phenotype"""
 		self.compare = compare(reference, self.seq)
-		os.makedirs("./tmp/", exist_ok = True)
-		self.phenotype = open(f"./tmp/person {self.id}.ppm", "w")
+		self.phenotype = open(f"./tmp/people/person {self.id}.ppm", "w")
 		self.phenotype.write(f"P3\n1 1 255\n0 {round(self.compare * 2.55)} 0\n\n")
 		self.phenotype.close()
 
@@ -549,7 +548,7 @@ class Person(Sequence):
 		window.mainloop()
 
 class Population:
-	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", **instructions) -> None:
+	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", homogeneous: bool = False, **instructions) -> None:
 		if isinstance(reference_sequence, Sequence):
 			self.reference = reference_sequence.seq	
 		else:
@@ -561,6 +560,8 @@ class Population:
 			raise ValueError(f"Please input a valid value for the generations.\nMust be an integer: Expected number > 0.\nGot {generations}.\n")
 		if not isinstance(size, int):
 			raise ValueError(f"The size must be a positive number.\nExpected int within range(1 to + infinity), instead got {size}.\n")
+		if not isinstance(homogeneous, bool):
+			raise TypeError(f"Please use a valid value for if the population is homogeneous or not\nExpected (True/False).\nGot {homogeneous}.\n")
 		# Number of people to start with
 		self.size = size
 		# Number of generations
@@ -586,24 +587,37 @@ class Population:
 		self.frame = ttk.Frame(self.window, padding = 10)
 		self.frame.grid()
 		ttk.Button(self.window, text = "Quit", command = self.window.destroy).grid(column = 10, row = 10)
-		# Defining int for the following loop so that functions don't keep calculating the same numbers
-		adenine = self.reference.adenine_percent() 
-		thymine = adenine + self.reference.thymine_percent() 
-		guanine = thymine + self.reference.guanine_percent()
-		cytocine = guanine + self.reference.cytocine_percent()
 		# A loop to create all the individuals we start with
-		for _ in range(size):
-			person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
-				k = len(self.reference)),
-				ID = _ + 1,
-				x_pos = random.randint(0, 10),
-				y_pos = random.randint(0, 10))
-			person.phenotype(self.reference.seq)
-			# Shouldn't it be person.seq?
-			self.people.append(person)
-			rounded_dist = round(compare(self.reference.seq, person.seq), 2)
-			self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
-			self.distances.append(rounded_dist)
+		os.makedirs(f"./tmp/people/", exist_ok = True)
+		# More code ends up with fewer calculations overall
+		if homogeneous:
+			for _ in range(size):
+				person = Person(sequence = self.reference,
+					ID = _ + 1,
+					x_pos = random.randint(0, 10),
+					y_pos = random.randint(0, 10))
+				person.phenotype(self.reference.seq)
+				self.people.append(person)
+				rounded_dist = round(compare(self.reference.seq, person.seq), 2)
+				self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
+				self.distances.append(rounded_dist)
+		else:
+			# Defining int for the following loop so that functions don't keep calculating the same numbers
+			adenine = self.reference.adenine_percent() 
+			thymine = adenine + self.reference.thymine_percent() 
+			guanine = thymine + self.reference.guanine_percent()
+			cytocine = guanine + self.reference.cytocine_percent()
+			for _ in range(size):
+				person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
+					k = len(self.reference)),
+					ID = _ + 1,
+					x_pos = random.randint(0, 10),
+					y_pos = random.randint(0, 10))
+				person.phenotype(self.reference.seq)
+				self.people.append(person)
+				rounded_dist = round(compare(self.reference.seq, person.seq), 2)
+				self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
+				self.distances.append(rounded_dist)
 		self.generation[0] = self.people
 		self.average.append(round(stat.mean(self.distances), 2))
 		# Family tree parameter
@@ -618,12 +632,10 @@ class Population:
 		"""Returns the current ammount of individuals in the population."""
 		return self.size
 
-	def filter(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10, drift: int|float = 10):
-		"""Removes unfit individuals"""
+	def drift(self, person: Person, text: str, verbose: bool, log: bool, drift: int|float = 10):
+		"""Removes individuals"""
 		if not isinstance(person, Person):
 			raise TypeError(f"Please give the individual that needs to be mutated\n")
-		if not isinstance(criteria, int|float):
-			raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
 		if not isinstance(drift, int|float):
 			raise TypeError(f"Please give a valid drift.\nGot {drift}.\n")
 		if not isinstance(verbose, bool):
@@ -632,8 +644,29 @@ class Population:
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
 		if drift < 0:
 			raise ValueError(f"Drift does not take negative values.\n")
-		# Loop that removes people
-		if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
+		if random.randint(0, 100) < drift:
+			person.living = False
+			if verbose:
+				print(text.format(id = person.id, ind = person))
+			if log:
+				self.log += text.format(id = person.id, ind = person)
+			else:
+				if verbose:
+					print(text.format(id = person.id, ind = person))
+				if log:
+					self.log += text.format(id = person.id, ind = person)
+
+	def criteria(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10):
+		"""Removes unfit individuals"""
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
+		if not isinstance(criteria, int|float):
+			raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
+		if not isinstance(log, bool):
+			raise TypeError(f"Invalid argument for log. Given {log}.\n")
+		 if compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria: 
 			person.living = False
 			if verbose:
 				print(text.format(id = person.id, ind = person))
@@ -644,6 +677,32 @@ class Population:
 				print(text.format(id = person.id, ind = person))
 			if log:
 				self.log += text.format(id = person.id, ind = person)
+
+	# def filter(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10, drift: int|float = 10):
+	# 	"""Removes unfit individuals"""
+	# 	if not isinstance(person, Person):
+	# 		raise TypeError(f"Please give the individual that needs to be mutated\n")
+	# 	if not isinstance(criteria, int|float):
+	# 		raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
+	# 	if not isinstance(drift, int|float):
+	# 		raise TypeError(f"Please give a valid drift.\nGot {drift}.\n")
+	# 	if not isinstance(verbose, bool):
+	# 		raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
+	# 	if not isinstance(log, bool):
+	# 		raise TypeError(f"Invalid argument for log. Given {log}.\n")
+	# 	if drift < 0:
+	# 		raise ValueError(f"Drift does not take negative values.\n")
+	# 	if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
+	# 		person.living = False
+	# 		if verbose:
+	# 			print(text.format(id = person.id, ind = person))
+	# 		if log:
+	# 			self.log += text.format(id = person.id, ind = person)
+	# 	else:
+	# 		if verbose:
+	# 			print(text.format(id = person.id, ind = person))
+	# 		if log:
+	# 			self.log += text.format(id = person.id, ind = person)
 
 	def cross(self, person: Person, verbose: bool = False, log: bool = False) -> None:
 		"""Picks how many kids and with who the person given has"""
@@ -800,18 +859,13 @@ def cmd_line_input():
 			elif arg == "-rate":
 				parameters[arg] = float(sys.argv[i + 1])
 			elif arg == "-h":
-				sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n")
-				#sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100].\n[-regression][Allows the reference similarity to drop during the run].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n")
+				sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneous: Determines how to create the very first generation of organism (if True will make the population homogeneous.)\n")
 			elif arg == "-v":
 				parameters[arg] = True
 				parameters["-q"] = False
 			elif arg == "-q":
 				parameters[arg] = True
 				parameters["-v"] = False
-			# elif arg == "-speed":
-			# 	parameters[arg] = int(sys.argv[i + 1])
-			# elif arg == "-regression":
-			# 	parameters[arg] = True
 			elif arg == "-log":
 				parameters[arg] = True
 			elif arg == "-drift":
@@ -819,6 +873,8 @@ def cmd_line_input():
 			elif arg == "-criteria":
 				parameters[arg] = int(sys.argv[i + 1])
 			elif arg == "-email":
+				parameters[arg] = str(sys.argv[i + 1])
+			elif arg == "-hom":
 				parameters[arg] = str(sys.argv[i + 1])
 		# setting default values
 		if "-rate" not in sys.argv:
@@ -833,6 +889,8 @@ def cmd_line_input():
 			parameters["-gen"] = 100
 		if "-acc" not in sys.argv:
 			parameters["-acc"] = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC"
+		if "-hom" not in sys.argv:
+			parameters["-hom"] = False
 		if "-q" not in sys.argv and "-v" not in sys.argv:
 			parameters["-v"] = False
 			parameters["-q"] = True
@@ -844,10 +902,6 @@ def cmd_line_input():
 		else:
 			parameters["-v"] = True
 			parameters["-q"] = False
-		# if "-regression" not in sys.argv:
-		# 	parameters["-regression"] = False
-		# if "-speed" not in sys.argv:
-		# 	parameters["-speed"] = 100
 		if "-log" not in sys.argv:
 			parameters["-log"] = True
 		if "-drift" not in sys.argv:
@@ -855,14 +909,12 @@ def cmd_line_input():
 		if "-criteria" not in sys.argv:
 			parameters["-criteria"] = 10
 	except(ValueError):
-		sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in parameter value.\nGiven{sys.argv}.\n")
-		#sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100].\n[-regression][Allows the reference similarity to drop during the run].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in parameter value.\nGiven{sys.argv}.\n")
+		sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneous: determines how to create the very first generation (if True will make all the sequences the same.)]\nProblem in parameter value.\nGiven{sys.argv}.\n")
 	for key in sys.argv[1::1]:
 		if key in parameters.keys() or key in str(parameters.values()) or key == ".\\test_project.py" or key == "test_project.py": 
 			continue
 		else:
-			sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
-			#sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-speed][Speed at which the program runs: An exponential scaling speed option, note that any value lower than the default may cause infinite run time. Values range from 1 to 100].\n[-regression][Allows the reference similarity to drop during the run].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
+			sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneous: determines how to create the very first generation (if True will make all the sequences the same.)]\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
 	return parameters
 
 def NCBI_parse(accession: str, email: str):
@@ -882,7 +934,7 @@ def NCBI_parse(accession: str, email: str):
 	else:
 		raise ValueError(f"Either a sequence or accession number must be input\nGiven: {accession}")
 
-def make_folders(output_path: str, folder_name: str):
+def make_folders(output_path: str, folder_name: str) -> None:
 	"""Creates the folder for all the ouput files as specified by the command line."""
 	if not isinstance(output_path, str):
 		raise TypeError(f"Please specify path.\nGot {output_path}.\n")
@@ -896,6 +948,7 @@ Creating output folder
 ##########################################################################\n""")
 	new_folder_path = os.path.join(output_path, folder_name)
 	os.makedirs(new_folder_path, exist_ok = True)
+	os.makedirs(f"./tmp/", exist_ok = True)
 
 # Make it so that it uses the needleman wunsch
 def compare(seq1: Sequence|str|list|tuple|set, seq2: Sequence|str|list|tuple|set):
@@ -947,18 +1000,15 @@ def remove_tmp(log: bool):
 	if not isinstance(log, bool):
 		raise TypeError(f"Function parameter has ivalid argument log. Please give a boolian value\n")
 	if log:
-		path = "./tmp/"
-		for file in os.listdir(path):
-			os.remove(path + file)
-		os.rmdir(path)
-	else:
 		pass
+	else:
+		os.remove(os.walk("./tmp/"))
 
 def main():
 	main_time = time.time()
 	cmd = cmd_line_input()
 	make_folders(cmd['-o'], "RSR_output_folder")
-	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"], cmd["-email"]))
+	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"], cmd["-email"]), homogeneous = cmd["-hom"])
 	output_file = os.path.join("RSR_output_folder", 'Results.txt')
 	generations_output = athens.generations(rate = cmd["-rate"], verbose = cmd["-v"], log = cmd["-log"], drift = cmd["-drift"], criteria = cmd["-criteria"])
 	with open(output_file, 'w') as out_file:
