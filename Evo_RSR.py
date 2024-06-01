@@ -656,7 +656,7 @@ class Population:
 				if log:
 					self.log += text.format(id = person.id, ind = person)
 
-	def criteria(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10):
+	def select(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10):
 		"""Removes unfit individuals"""
 		if not isinstance(person, Person):
 			raise TypeError(f"Please give the individual that needs to be mutated\n")
@@ -666,7 +666,7 @@ class Population:
 			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
 		if not isinstance(log, bool):
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
-		 if compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria: 
+		if compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria: 
 			person.living = False
 			if verbose:
 				print(text.format(id = person.id, ind = person))
@@ -677,32 +677,6 @@ class Population:
 				print(text.format(id = person.id, ind = person))
 			if log:
 				self.log += text.format(id = person.id, ind = person)
-
-	# def filter(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10, drift: int|float = 10):
-	# 	"""Removes unfit individuals"""
-	# 	if not isinstance(person, Person):
-	# 		raise TypeError(f"Please give the individual that needs to be mutated\n")
-	# 	if not isinstance(criteria, int|float):
-	# 		raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
-	# 	if not isinstance(drift, int|float):
-	# 		raise TypeError(f"Please give a valid drift.\nGot {drift}.\n")
-	# 	if not isinstance(verbose, bool):
-	# 		raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
-	# 	if not isinstance(log, bool):
-	# 		raise TypeError(f"Invalid argument for log. Given {log}.\n")
-	# 	if drift < 0:
-	# 		raise ValueError(f"Drift does not take negative values.\n")
-	# 	if random.randint(0, 100) < drift or compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria:
-	# 		person.living = False
-	# 		if verbose:
-	# 			print(text.format(id = person.id, ind = person))
-	# 		if log:
-	# 			self.log += text.format(id = person.id, ind = person)
-	# 	else:
-	# 		if verbose:
-	# 			print(text.format(id = person.id, ind = person))
-	# 		if log:
-	# 			self.log += text.format(id = person.id, ind = person)
 
 	def cross(self, person: Person, verbose: bool = False, log: bool = False) -> None:
 		"""Picks how many kids and with who the person given has"""
@@ -800,21 +774,21 @@ class Population:
 				self.log += info + "\n" 
 			# Loop individuals
 			self.distances = []
-			copy = self.people
-			for person in copy:
+			for person in self.people:
 				pass
 				# Mutate
 				self.mutate(person = person, rate = rate, verbose = verbose, log = log)
-				self.filter(person = person, text = "Person {id} {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, criteria = criteria, drift = drift)
-				# Cross
+				self.drift(person = person, text = "Person {id} {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, drift = drift)
 				# Definie the ammount of offspting
 				self.cross(person = person, verbose = verbose, log = log)
-				self.filter(person = person, text = "Person {id} {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria, drift = drift)
-			for person in copy:
+				self.select(person = person, text = "Person {id} {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria)
+			for person in self.people:
 				if person.living == False:
 					self.generation[self.cgen].remove(person)
 			self.people = self.generation[self.cgen + 1]
 			self.average.append(round(stat.mean(self.distances), 2))
+			self.size = len(self.people)
+			self.slog.append(self.size)
 			for widget in self.frame.winfo_children():
 				widget.destroy()
 			self.make_window()
@@ -825,10 +799,6 @@ class Population:
 			# Both cross and mutate can kill the population hence the double if
 			if self.size <= 1:
 				self.slog.append(self.size)
-				print("The populations has died.\n")
-				self.log += "The populations has died."
-				return self.slog, self.average, self.log
-			if self.size <= 1:
 				print("The populations has died.\n")
 				self.log += "The populations has died."
 				return self.slog, self.average, self.log
