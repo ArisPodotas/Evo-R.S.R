@@ -102,6 +102,10 @@ def test_Person_1():
 		po = Person(ID = [1, 2, 2])
 		po = Person(ID = -2)
 		po = Person(ID = complex(3))
+		po = Person(time = "7")
+		po = Person(time = [1, 2, 2])
+		po = Person(time = -2)
+		po = Person(time = complex(3))
 	with pytest.raises(ValueError):
 		p0 = Person(sequence = "boy")
 		p0 = Person(genome = "2345432")

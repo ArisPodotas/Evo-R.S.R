@@ -4,6 +4,7 @@
 # City: Athens
 # Date: 30/8/2023
 
+# Consider importing colorama (needs to install too) to make the text colorful in the terminal
 import random
 import re
 import os
@@ -16,7 +17,6 @@ import statistics as stat
 import time
 from tkinter import *
 from tkinter import ttk
-import bigtree as bt
 import numpy as np
 
 class Sequence:
@@ -483,13 +483,20 @@ class Genome(Sequence):
 		
 class Person(Sequence):
 	"""This class represents one single person."""
-	def __init__(self, sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = (25, 50, 75, 100), k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")), genome = 10, ID = None, x_pos = 0, y_pos = 0) -> None:
+	def __init__(self, sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = (25, 50, 75, 100), k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")), genome = 10, ID = None, x_pos = 0, y_pos = 0, time = None) -> None:
 			if not isinstance(genome, int|list):
 				raise ValueError(f"The genome must be a list containing numbers.\nExpected something like {[1, 2, 3, 4, 5, 6, 7, 7, 8, 9, 10]} got {genome}.\n")
 			if ID != None and not isinstance(ID, int):
 				raise TypeError (f"The ID must be a natural number.\nExpected: type(int).\nGot: {type(ID)}.\n")
 			if isinstance(ID, int):
 				if 0 <= ID:
+					pass
+				else:
+					raise TypeError(f"Improper value for ID.\nMust be a natural number.\n")
+			if time != None and not isinstance(time, int):
+				raise TypeError (f"The time must be a natural number.\nExpected: type(int).\nGot: {type(time)}.\n")
+			if isinstance(time, int):
+				if 0 <= time:
 					pass
 				else:
 					raise TypeError(f"Improper value for ID.\nMust be a natural number.\n")
@@ -500,10 +507,12 @@ class Person(Sequence):
 			if not isinstance(y_pos, int) or y_pos < 0:
 				raise TypeError(f"The positions of the individual start form the left most top postition of the window thus they cannot be negative and not real numbers.\n")
 			super().__init__(sequence)
+			# Added the time parameter just for the generations and ouputing a unique id for each person in the population despite the fact that they will have the same id in the end 
 			# Parametising the sequence
 			self.genome = genome
 			# Assigning a unique code to the individual
 			self.id = ID
+			self.time = time
 			# Coordinates
 			self.x_pos = x_pos
 			self.y_pos = y_pos
@@ -534,10 +543,12 @@ class Person(Sequence):
 
 	def phenotype(self, reference: Sequence|str|list):
 		"""Set an image that represent the phenotype"""
+		self.path = f"./tmp/people/person {self.id}.ppm"
 		self.compare = compare(reference, self.seq)
-		self.phenotype = open(f"./tmp/people/person {self.id}.ppm", "w")
+		self.phenotype = open(self.path, "w")
 		self.phenotype.write(f"P3\n1 1 255\n0 {round(self.compare * 2.55)} 0\n\n")
 		self.phenotype.close()
+		return self.path
 
 	def make_window(self) -> None:
 		"""Creates a window with a grid representation of the persons position."""
@@ -548,7 +559,7 @@ class Person(Sequence):
 		window.mainloop()
 
 class Population:
-	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", homogeneous: bool = False, **instructions) -> None:
+	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", homogeneity: int = 0, **instructions) -> None:
 		if isinstance(reference_sequence, Sequence):
 			self.reference = reference_sequence.seq	
 		else:
@@ -560,12 +571,14 @@ class Population:
 			raise ValueError(f"Please input a valid value for the generations.\nMust be an integer: Expected number > 0.\nGot {generations}.\n")
 		if not isinstance(size, int):
 			raise ValueError(f"The size must be a positive number.\nExpected int within range(1 to + infinity), instead got {size}.\n")
-		if not isinstance(homogeneous, bool):
-			raise TypeError(f"Please use a valid value for if the population is homogeneous or not\nExpected (True/False).\nGot {homogeneous}.\n")
+		if not isinstance(homogeneity, int):
+			raise TypeError(f"Please use a valid value for the population homogeneity\nExpected (int).\nGot type: {type(homogeneity)} value: {homogeneity}.\n")
 		# Number of people to start with
 		self.size = size
 		# Number of generations
 		self.gen = generations
+		# So that there are no errors
+		self.cgen = 0
 		# A list that keeps all the individuals (as the data structure above)
 		self.people = []
 		# list of all generations
@@ -576,53 +589,14 @@ class Population:
 		self.log = f""
 		# A list that keep track of all the generations individual count
 		self.slog = [self.size]
+		# Homogeneousness
+		self.hom = homogeneity
 		# A temporary list of the distances from the reference
 		self.distances = []
 		# A list of the average reference similarity of a generation for each generation
 		self.average = []
-		# Tkinter stats
-		self.window = Tk()
-		self.window.geometry("1920x1080")
-		self.window.title("R.S.R. Simulation")
-		self.frame = ttk.Frame(self.window, padding = 10)
-		self.frame.grid()
-		ttk.Button(self.window, text = "Quit", command = self.window.destroy).grid(column = 10, row = 10)
 		# A loop to create all the individuals we start with
 		os.makedirs(f"./tmp/people/", exist_ok = True)
-		# More code ends up with fewer calculations overall
-		if homogeneous:
-			for _ in range(size):
-				person = Person(sequence = self.reference,
-					ID = _ + 1,
-					x_pos = random.randint(0, 10),
-					y_pos = random.randint(0, 10))
-				person.phenotype(self.reference.seq)
-				self.people.append(person)
-				rounded_dist = round(compare(self.reference.seq, person.seq), 2)
-				self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
-				self.distances.append(rounded_dist)
-		else:
-			# Defining int for the following loop so that functions don't keep calculating the same numbers
-			adenine = self.reference.adenine_percent() 
-			thymine = adenine + self.reference.thymine_percent() 
-			guanine = thymine + self.reference.guanine_percent()
-			cytocine = guanine + self.reference.cytocine_percent()
-			for _ in range(size):
-				person = Person(sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
-					k = len(self.reference)),
-					ID = _ + 1,
-					x_pos = random.randint(0, 10),
-					y_pos = random.randint(0, 10))
-				person.phenotype(self.reference.seq)
-				self.people.append(person)
-				rounded_dist = round(compare(self.reference.seq, person.seq), 2)
-				self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}, No ancestors\n"
-				self.distances.append(rounded_dist)
-		self.generation[0] = self.people
-		self.average.append(round(stat.mean(self.distances), 2))
-		# Family tree parameter
-		self.ftree = ""
-		self.make_window()
 
 	def __str__(self) -> str:
 		"""Returns a log of all the people that are and ever have been in the population."""
@@ -631,118 +605,6 @@ class Population:
 	def __len__(self) -> int:
 		"""Returns the current ammount of individuals in the population."""
 		return self.size
-
-	def drift(self, person: Person, text: str, verbose: bool, log: bool, drift: int|float = 10):
-		"""Removes individuals"""
-		if not isinstance(person, Person):
-			raise TypeError(f"Please give the individual that needs to be mutated\n")
-		if not isinstance(drift, int|float):
-			raise TypeError(f"Please give a valid drift.\nGot {drift}.\n")
-		if not isinstance(verbose, bool):
-			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
-		if not isinstance(log, bool):
-			raise TypeError(f"Invalid argument for log. Given {log}.\n")
-		if drift < 0:
-			raise ValueError(f"Drift does not take negative values.\n")
-		if random.randint(0, 100) < drift:
-			person.living = False
-			if verbose:
-				print(text.format(id = person.id, ind = person))
-			if log:
-				self.log += text.format(id = person.id, ind = person)
-			else:
-				if verbose:
-					print(text.format(id = person.id, ind = person))
-				if log:
-					self.log += text.format(id = person.id, ind = person)
-
-	def select(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10):
-		"""Removes unfit individuals"""
-		if not isinstance(person, Person):
-			raise TypeError(f"Please give the individual that needs to be mutated\n")
-		if not isinstance(criteria, int|float):
-			raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
-		if not isinstance(verbose, bool):
-			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
-		if not isinstance(log, bool):
-			raise TypeError(f"Invalid argument for log. Given {log}.\n")
-		if compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria: 
-			person.living = False
-			if verbose:
-				print(text.format(id = person.id, ind = person))
-			if log:
-				self.log += text.format(id = person.id, ind = person)
-		else:
-			if verbose:
-				print(text.format(id = person.id, ind = person))
-			if log:
-				self.log += text.format(id = person.id, ind = person)
-
-	def cross(self, person: Person, verbose: bool = False, log: bool = False) -> None:
-		"""Picks how many kids and with who the person given has"""
-		# cross refers more so to a recombination for DNA of two individuals
-		if not isinstance(person, Person):
-			raise TypeError(f"Please give the individual that needs to be mutated\n")
-		if not isinstance(verbose, bool):
-			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
-		if not isinstance(log, bool):
-			raise TypeError(f"Invalid argument for log. Given {log}.\n")
-		# How many children the individual has
-		loops = round(compare(person.seq, self.reference.seq) % 10)
-		if loops == 0:
-			if verbose:
-				print(f"Person {person.id}: {str(person)} Has not had any children\n")
-			if log:
-				self.log += (f"Person {person.id}: {str(person)} Has not had any children\n")
-			return None
-		for loop in range(loops):
-			# Random mate choice
-			person1 = random.choice(self.people)
-			# Making sure it's not the same person
-			while person == person1 and self.size > 1:
-				person1 = random.choice(self.people)
-			# The parents recombination
-			rec_position = random.randint(0, len(str(person1)) - 1)
-			# The child
-			person3 = Person(sequence = str(person)[:rec_position:1] + str(person1)[rec_position::1],
-					ID = loop + 1,
-					x_pos = round((person1.x_pos + person.x_pos)/2),
-					y_pos = round((person1.y_pos + person.y_pos)/2))
-			if verbose:
-				print(f"Person {person1.id}: {str(person1)} x Person {person.id}: {str(person)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.")
-			if log:
-				self.log += (f"Person {person1.id}: {str(person1)} x Person {person.id}: {str(person)} at position {rec_position} To give new Person {person3.id}: {str(person3)}.\n")
-			self.generation[self.cgen + 1].append(person3)
-			self.distances.append(round(compare(self.reference.seq, person3.seq), 2))
-
-	def mutate(self, person: Person, rate: int|float = 0.5, verbose: bool = False, log: bool = False) -> None:
-		"""Mutates the individual of the population given."""
-		if not isinstance(person, Person):
-			raise TypeError(f"Please give the individual that needs to be mutated\n")
-		if not isinstance(rate, int|float):
-			raise TypeError(f"Please give numeral rate.\nGot {rate}.\n")
-		if not isinstance(verbose, bool):
-			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
-		if not isinstance(log, bool):
-			raise TypeError(f"Invalid argument for log. Given {log}.\n")
-		if rate <= 0:
-			raise ValueError(f"rate must be positive non 0.\nGiven {rate}.\n")
-		prevseq = person.seq
-		person.mutate(rate = rate)
-		self.distances.append(round(compare(self.reference.seq, person.seq), 2))
-		if verbose:
-			print(f"Person {person.id} {prevseq} has mutated to {person}.")
-		if log:
-			self.log += f"Person {person.id} {prevseq} has mutated to {person}.\n\n"
-
-	def family_tree(self,verbose: bool = False, log: bool = True):
-		if not isinstance(log, bool):
-			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
-		if not isinstance(verbose, bool):
-			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
-		# self.ancestors worn't work here
-		# self.ftree = bt.list_to_tree(self.ancestors)
-		return self.ftree
 
 	def generations(self, rate: int|float = 0.5, drift: int|float = 10, criteria: int|float = 10, verbose: bool = False, log: bool = True) -> tuple:
 		"""Simulates te entire population throughout all of its life span."""
@@ -760,60 +622,200 @@ class Population:
 		for self.cgen in range(self.gen - 1):
 			info = f"""
 # ######################################################################
-
 # Generation: {self.cgen + 1}
-
 # Population size: {self.size}
-
-# Average population reference similarity: {self.average[self.cgen]}
-
 # ######################################################################\n"""
 			if verbose:
 				print(info)
 			if log:
 				self.log += info + "\n" 
-			# Loop individuals
-			self.distances = []
-			for person in self.people:
-				pass
-				# Mutate
-				self.mutate(person = person, rate = rate, verbose = verbose, log = log)
-				self.drift(person = person, text = "Person {id} {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, drift = drift)
-				# Definie the ammount of offspting
-				self.cross(person = person, verbose = verbose, log = log)
-				self.select(person = person, text = "Person {id} {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria)
-			for person in self.people:
-				if person.living == False:
-					self.generation[self.cgen].remove(person)
-			self.people = self.generation[self.cgen + 1]
-			self.average.append(round(stat.mean(self.distances), 2))
-			self.size = len(self.people)
-			self.slog.append(self.size)
-			for widget in self.frame.winfo_children():
-				widget.destroy()
-			self.make_window()
-			# Multiple if verbose
-			if verbose:
-				print(self.family_tree(verbose = verbose, log = log))
-			# Two if self.size <= 1?
-			# Both cross and mutate can kill the population hence the double if
+			if self.cgen == 0:
+				# Defining int for the following loop so that functions don't keep calculating the same numbers
+				adenine = self.reference.adenine_percent() 
+				thymine = adenine + self.reference.thymine_percent() 
+				guanine = thymine + self.reference.guanine_percent()
+				cytocine = guanine + self.reference.cytocine_percent()
+				# For homogeneity
+				user = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine], k = len(self.reference))
+				for _ in range(self.size):
+					person = Person(sequence = user if random.randint(0, self.size) <= math.ceil(self.hom * self.size / 100) else random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
+						k = len(self.reference)),
+						ID = _ + 1,
+						x_pos = random.randint(0, 10),
+						y_pos = random.randint(0, 10),
+						time = 0)
+					person.phenotype(self.reference.seq)
+					self.people.append(person)
+					rounded_dist = round(compare(self.reference.seq, person.seq), 2)
+					self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}.\n"
+					self.distances.append(rounded_dist)
+				self.average.append(round(stat.mean(self.distances), 2))
+				self.generation[0] = self.people
+				# Family tree parameter
+				self.ftree = ""
+			else:
+				# Loop individuals
+				self.distances = []
+				for person in self.people:
+					# Generation comparison with the reference
+					self.distances.append(round(compare(self.reference.seq, person.seq), 2))
+					# Mutate
+					self.mutate(person = person, rate = rate, verbose = verbose, log = log)
+					self.drift(person = person, text = "Person (N: {id}, G: {tl}) {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, drift = drift)
+					# Definie the ammount of offspting
+					self.cross(person = person, verbose = verbose, log = log)
+					self.select(person = person, text = "Person (N: {id}, G: {tl}) {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria)
+				for person in self.people:
+					if person.living == False:
+						self.generation[self.cgen].remove(person)
+				self.people = self.generation[self.cgen + 1]
+				self.average.append(round(stat.mean(self.distances), 2))
+				self.size = len(self.people)
+				self.slog.append(self.size)
+				if verbose:
+					print(self.family_tree(verbose = verbose, log = log))
 			if self.size <= 1:
 				self.slog.append(self.size)
 				print("The populations has died.\n")
 				self.log += "The populations has died."
 				return self.slog, self.average, self.log
 		return self.slog, self.average, self.log
-		
+
+	def expression(self) -> None:
+		"""Defining the main window of the population using tkinter"""
+		# Tkinter stats
+		# The must haves
+		self.window = Tk()
+		self.window.geometry("1920x1080")
+		self.window.title("R.S.R. Simulation")
+		# grid for the people
+		self.field = ttk.Frame(master = self.window)
+		ttk.Label(self.field, text = f"'N' Refers to the person's ID number, 'G' Refers to their generation.").pack()
+		# Escape
+		ttk.Button(self.window, text = "Quit", command = self.window.destroy).pack()
+
 	def make_window(self) -> None:
 		"""Simulates the populations movements."""
+		# This really shoyld be moved to it's own seperate thing and this function should not be for the description i've given it
 		for person in self.people:
 			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
 			if person.x_pos > 100:
 				person.x_pos = 100
 			if person.y_pos > 100:
 				person.y_pos = 100
-			ttk.Label(self.frame, text = person.id).grid(column = person.x_pos, row = person.y_pos)
+			# Chagne to input image instead
+			ttk.Label(self.field, text = f"(N:{person.id},G:{person.time})").pack()
 		self.window.update()
+
+	def family_tree(self,verbose: bool = False, log: bool = True):
+		if not isinstance(log, bool):
+			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
+		return self.ftree
+
+	def drift(self, person: Person, text: str, verbose: bool, log: bool, drift: int|float = 10):
+		"""Removes individuals"""
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
+		if not isinstance(drift, int|float):
+			raise TypeError(f"Please give a valid drift.\nGot {drift}.\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
+		if not isinstance(log, bool):
+			raise TypeError(f"Invalid argument for log. Given {log}.\n")
+		if drift < 0:
+			raise ValueError(f"Drift does not take negative values.\n")
+		if random.randint(0, 100) < drift:
+			person.living = False
+			if verbose:
+				print(text.format(id = person.id, tl = person.time, ind = person))
+			if log:
+				self.log += text.format(id = person.id, tl = person.time, ind = person)
+			else:
+				if verbose:
+					print(text.format(id = person.id, tl = person.time, ind = person))
+				if log:
+					self.log += text.format(id = person.id, tl = person.time, ind = person)
+
+	def select(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10):
+		"""Removes unfit individuals"""
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
+		if not isinstance(criteria, int|float):
+			raise TypeError(f"Please give slection criteria.\nGot {criteria}.\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
+		if not isinstance(log, bool):
+			raise TypeError(f"Invalid argument for log. Given {log}.\n")
+		if compare(person.seq, self.reference.seq) <= self.average[len(self.average) - 2] - criteria: 
+			person.living = False
+			if verbose:
+				print(text.format(id = person.id, tl = person.time, ind = person))
+			if log:
+				self.log += text.format(id = person.id, tl = person.time, ind = person)
+		else:
+			if verbose:
+				print(text.format(id = person.id, tl = person.time, ind = person))
+			if log:
+				self.log += text.format(id = person.id, tl = person.time, ind = person)
+
+	def cross(self, person: Person, verbose: bool = False, log: bool = False) -> None:
+		"""Picks how many kids and with who the person given has"""
+		# cross refers more so to a recombination for DNA of two individuals
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbos must be boolean, got {verbose}.\n")
+		if not isinstance(log, bool):
+			raise TypeError(f"Invalid argument for log. Given {log}.\n")
+		# How many children the individual has
+		loops = round(compare(person.seq, self.reference.seq) % 10)
+		if loops == 0:
+			if verbose:
+				print(f"Person (N:{person.id},G:{person.time}): {str(person)} Has not had any children\n")
+			if log:
+				self.log += (f"Person (N:{person.id},G:{person.time}): {str(person)} Has not had any children\n")
+			return None
+		for loop in range(loops):
+			# Random mate choice
+			person1 = random.choice(self.people)
+			# Making sure it's not the same person
+			while person == person1 and self.size > 1 or not person1.living:
+				person1 = random.choice(self.people)
+			# The parents recombination
+			rec_position = random.randint(0, len(str(person1)) - 1)
+			# The child
+			person3 = Person(sequence = str(person)[:rec_position:1] + str(person1)[rec_position::1],
+					ID = loop + 1,
+					x_pos = round((person1.x_pos + person.x_pos)/2),
+					y_pos = round((person1.y_pos + person.y_pos)/2),
+					time = self.cgen + 1)
+			if verbose:
+				print(f"Person (N:{person1.id},G:{person1.time}): {str(person1)} x Person (N:{person.id},G:{person.time}): {str(person)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.")
+			if log:
+				self.log += (f"Person (N:{person1.id},G:{person1.time}): {str(person1)} x Person (N:{person.id},G:{person.time}): {str(person)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.\n")
+			self.generation[self.cgen + 1].append(person3)
+
+	def mutate(self, person: Person, rate: int|float = 0.5, verbose: bool = False, log: bool = False) -> None:
+		"""Mutates the individual of the population given."""
+		if not isinstance(person, Person):
+			raise TypeError(f"Please give the individual that needs to be mutated\n")
+		if not isinstance(rate, int|float):
+			raise TypeError(f"Please give numeral rate.\nGot {rate}.\n")
+		if not isinstance(verbose, bool):
+			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
+		if not isinstance(log, bool):
+			raise TypeError(f"Invalid argument for log. Given {log}.\n")
+		if rate <= 0:
+			raise ValueError(f"rate must be positive non 0.\nGiven {rate}.\n")
+		prevseq = person.seq
+		person.mutate(rate = rate)
+		if verbose:
+			print(f"Person (N:{person.id},G:{person.time}) {prevseq} has mutated to {person}.")
+		if log:
+			self.log += f"Person (N:{person.id},G:{person.time}) {prevseq} has mutated to {person}.\n\n"
+
 
 def cmd_line_input():
 	"""Returns all command line argument inputs as variables for the program to use."""
@@ -829,7 +831,7 @@ def cmd_line_input():
 			elif arg == "-rate":
 				parameters[arg] = float(sys.argv[i + 1])
 			elif arg == "-h":
-				sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneous: Determines how to create the very first generation of organism (if True will make the population homogeneous.)\n")
+				sys.exit("Usage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of the population: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneity: Determines how to create the very first generation of organisms (if given will make the population as homogeneous as homogeneity.)\n")
 			elif arg == "-v":
 				parameters[arg] = True
 				parameters["-q"] = False
@@ -860,7 +862,7 @@ def cmd_line_input():
 		if "-acc" not in sys.argv:
 			parameters["-acc"] = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC"
 		if "-hom" not in sys.argv:
-			parameters["-hom"] = False
+			parameters["-hom"] = 0
 		if "-q" not in sys.argv and "-v" not in sys.argv:
 			parameters["-v"] = False
 			parameters["-q"] = True
@@ -879,12 +881,12 @@ def cmd_line_input():
 		if "-criteria" not in sys.argv:
 			parameters["-criteria"] = 10
 	except(ValueError):
-		sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneous: determines how to create the very first generation (if True will make all the sequences the same.)]\nProblem in parameter value.\nGiven{sys.argv}.\n")
+		sys.exit(f"Problem with a parameter value.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneity: determines how to create the very first generation (if given will make the proportion of the population as homogeneous as the parameter.)]\nProblem in parameter value.\nGiven{sys.argv}.\n")
 	for key in sys.argv[1::1]:
 		if key in parameters.keys() or key in str(parameters.values()) or key == ".\\test_project.py" or key == "test_project.py": 
 			continue
 		else:
-			sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneous: determines how to create the very first generation (if True will make all the sequences the same.)]\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
+			sys.exit(f"Promblem with given argument.\nUsage:\n[-h][shows a list of all commands].\n[-acc][accession number: can be empty].\n[-email][Your email. Required if an accession number is provided to fetch the sequence from NCBI].\n[-o][output_path: can be empty (inputs default value)].\n[-gen][number of generations: Must be greater than 0. Can be empty (inputs default value)].\n[-size][number for size of each generation: Must be greater than 0. Can be empty (inputs default value)].\n[-rate][mutation rate: Must be greater than 0. Can be empty (inputs default value)].\n[-v][Verbose: prints processes on screen].\n[-q][Quiet: stops printing output (may increase speed)].\n[-drift][Defines a genetic drift parameter that kills individuals randomly].\n[-criteria][Defines a selection criteria for natural selection, warning may cause population to die easily].\n[-log][Creates a log file to track run].\n[-hom][Homogeneity: determines how to create the very first generation (if given will make the prportion of the population to as homogeneous as the parameter.)]\nProblem in arguments.\nGiven{sys.argv}.\nUnable to interpret [{key}].\n")
 	return parameters
 
 def NCBI_parse(accession: str, email: str):
@@ -912,9 +914,7 @@ def make_folders(output_path: str, folder_name: str) -> None:
 		raise TypeError(f"Please specify path.\nGot {folder_name}.\n")
 	print(f"""
 ##########################################################################
-
 Creating output folder
-
 ##########################################################################\n""")
 	new_folder_path = os.path.join(output_path, folder_name)
 	os.makedirs(new_folder_path, exist_ok = True)
@@ -978,7 +978,7 @@ def main():
 	main_time = time.time()
 	cmd = cmd_line_input()
 	make_folders(cmd['-o'], "RSR_output_folder")
-	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"], cmd["-email"]), homogeneous = cmd["-hom"])
+	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"], cmd["-email"]), homogeneity = cmd["-hom"])
 	output_file = os.path.join("RSR_output_folder", 'Results.txt')
 	generations_output = athens.generations(rate = cmd["-rate"], verbose = cmd["-v"], log = cmd["-log"], drift = cmd["-drift"], criteria = cmd["-criteria"])
 	with open(output_file, 'w') as out_file:
@@ -986,9 +986,7 @@ def main():
 		make_figures(generations_output[0], generations_output[1])
 	print(f"""
 ##############################################################################################################################################
-
 Process finished.\n\nParse results at {os.path.abspath(cmd['-o'])}\RSR_output_folder within Results.txt and RSR Outpout Graph.png
-
 ##############################################################################################################################################\n""")
 	main_end_time = time.time() - main_time
 	print(f"Took {main_end_time:.2f} seconds to run.\n")
