@@ -143,11 +143,11 @@ class Sequence:
 		modified_mutation_weights.append(mutation_weights["translocations"])
 		for _ in range(ammount):
 			mut = random.choices([self.point_mutations,
-						 self.transversions,
-						 self.transitions,
-						 self.insertions,
-						 self.deletions,
-						 self.translocations], cum_weights = modified_mutation_weights)
+				 self.transversions,
+				 self.transitions,
+				 self.insertions,
+				 self.deletions,
+				 self.translocations], cum_weights = modified_mutation_weights)
 			mut[0](ammount = 1)
 		return self.seq
 
@@ -483,7 +483,15 @@ class Genome(Sequence):
 		
 class Person(Sequence):
 	"""This class represents one single person."""
-	def __init__(self, sequence = random.choices(population = ["A", "T", "G", "C"], cum_weights = (25, 50, 75, 100), k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")), genome = 10, ID = None, x_pos = 0, y_pos = 0, time = None) -> None:
+	def __init__(self,
+		sequence = random.choices(population = ["A", "T", "G", "C"],
+				cum_weights = (25, 50, 75, 100),
+				k = len("AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC")),
+			genome = 10,
+			ID = None,
+			x_pos = 0,
+			y_pos = 0,
+			time = None) -> None:
 			if not isinstance(genome, int|list):
 				raise ValueError(f"The genome must be a list containing numbers.\nExpected something like {[1, 2, 3, 4, 5, 6, 7, 7, 8, 9, 10]} got {genome}.\n")
 			if ID != None and not isinstance(ID, int):
@@ -507,7 +515,6 @@ class Person(Sequence):
 			if not isinstance(y_pos, int) or y_pos < 0:
 				raise TypeError(f"The positions of the individual start form the left most top postition of the window thus they cannot be negative and not real numbers.\n")
 			super().__init__(sequence)
-			# Added the time parameter just for the generations and ouputing a unique id for each person in the population despite the fact that they will have the same id in the end 
 			# Parametising the sequence
 			self.genome = genome
 			# Assigning a unique code to the individual
@@ -518,6 +525,7 @@ class Person(Sequence):
 			self.y_pos = y_pos
 			# Setting status
 			self.living = True
+			# Would like to simulate any one persons lifespan
 			self.age = 0
 
 	def __str__(self) -> int:
@@ -560,7 +568,12 @@ class Person(Sequence):
 		window.mainloop()
 
 class Population:
-	def __init__(self, size = 100, generations = 100, reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC", homogeneity: int = 0, **instructions) -> None:
+	def __init__(self,
+		size = 100,
+		generations = 100,
+		reference_sequence = "AAAGGTACGCGCGCCGGCGCGTATAGCTTTAGTCGTGGACGCTAGCTAGCTGGTAGCGACAGGCGAGAAATGCTAGCATCGAGCATGCAGCGTTC",
+		homogeneity: int = 0,
+		**instructions) -> None:
 		if isinstance(reference_sequence, Sequence):
 			self.reference = reference_sequence.seq	
 		else:
@@ -666,7 +679,9 @@ class Population:
 				guanine = thymine + self.reference.guanine_percent()
 				cytocine = guanine + self.reference.cytocine_percent()
 				# For homogeneity
-				user = random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine], k = len(self.reference))
+				user = random.choices(population = ["A", "T", "G", "C"],
+					cum_weights = [adenine,	thymine, guanine, cytocine],
+					k = len(self.reference))
 				for _ in range(self.size):
 					person = Person(sequence = user if random.randint(0, self.size) <= math.ceil(self.hom * self.size / 100) else random.choices(population = ["A", "T", "G", "C"], cum_weights = [adenine, thymine, guanine, cytocine],
 						k = len(self.reference)),
