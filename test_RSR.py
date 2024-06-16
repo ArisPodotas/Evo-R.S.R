@@ -163,7 +163,7 @@ def test_make_folders():
 	assert os.path.exists(new_folder) == True
 
 def test_generations():
-	athens = Population(size = 100, generations = 10)
+	athens = Population(size = 100, generations = 5)
 	result = athens.generations()
 	assert isinstance(result[0], list) == True
 	assert isinstance(result[1], list) == True
@@ -224,7 +224,7 @@ def test_ncbi_parse():
 		NCBI_parse("ATGCTAGCTTGATCTGT.1", email = "a.Podotas@gmail.com")
 
 def test_make_figures():
-	athens = Population(generations = 10)
+	athens = Population(generations = 5)
 	generations_output = athens.generations()
 	assert make_figures(generations_output[0], generations_output[1]) == True
 

@@ -518,6 +518,7 @@ class Person(Sequence):
 			self.y_pos = y_pos
 			# Setting status
 			self.living = True
+			self.age = 0
 
 	def __str__(self) -> int:
 		"""Returns the individuals sequence."""
@@ -597,6 +598,10 @@ class Population:
 		self.average = []
 		# A loop to create all the individuals we start with
 		os.makedirs(f"./tmp/people/", exist_ok = True)
+		# A parameter for when the population dies
+		self.sustained = True
+		# Developer string
+		self.dev = f""
 
 	def __str__(self) -> str:
 		"""Returns a log of all the people that are and ever have been in the population."""
@@ -620,15 +625,40 @@ class Population:
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
 		# Loop generations
 		for self.cgen in range(self.gen - 1):
-			info = f"""
-# ######################################################################
-# Generation: {self.cgen + 1}
+			info = f"""# ######################################################################
+# Generation: {self.cgen}
 # Population size: {self.size}
 # ######################################################################\n"""
 			if verbose:
 				print(info)
+			self.log += info + "\n" 
 			if log:
-				self.log += info + "\n" 
+				self.dev += f"""### generation {self.cgen}
+				# Number of people to start with
+				self.size = {self.size}
+				# Number of generations
+				self.gen = {self.gen}
+				# So that there are no errors
+				self.cgen = {self.cgen}
+				# A list that keeps all the individuals (as the data structure above)
+				self.people = {self.people}
+				# list of all generations
+				self.generation = {self.generation}
+				# String where we output all the data of the seqeunces
+				self.log = 
+				# A list that keep track of all the generations individual count
+				self.slog = {self.slog}
+				# Homogeneousness
+				self.hom = {self.hom}
+				# A temporary list of the distances from the reference
+				self.distances = {self.distances}
+				# A list of the average reference similarity of a generation for each generation
+				self.average = {self.average}
+				# A parameter for when the population dies
+				self.sustained = {self.sustained}
+				#######################################################################################
+			"""
+			# This will need to be moved back into the ini function for i do not want ot check this on every loop slowing the program
 			if self.cgen == 0:
 				# Defining int for the following loop so that functions don't keep calculating the same numbers
 				adenine = self.reference.adenine_percent() 
@@ -643,39 +673,67 @@ class Population:
 						ID = _ + 1,
 						x_pos = random.randint(0, 10),
 						y_pos = random.randint(0, 10),
-						time = 0)
+						time = self.cgen)
 					person.phenotype(self.reference.seq)
 					self.people.append(person)
 					rounded_dist = round(compare(self.reference.seq, person.seq), 2)
-					self.log += f"Person {_ + 1}, Generation: Parent, {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}.\n"
+					self.log += f"Person {_ + 1}, Generation: 0 (Parent), {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}.\n"
 					self.distances.append(rounded_dist)
 				self.average.append(round(stat.mean(self.distances), 2))
 				self.generation[0] = self.people
 				# Family tree parameter
 				self.ftree = ""
-			else:
-				# Loop individuals
-				self.distances = []
-				for person in self.people:
-					# Generation comparison with the reference
-					self.distances.append(round(compare(self.reference.seq, person.seq), 2))
-					# Mutate
-					self.mutate(person = person, rate = rate, verbose = verbose, log = log)
-					self.drift(person = person, text = "Person (N: {id}, G: {tl}) {ind} has not lived long enough to see the next generation." , verbose = verbose, log = log, drift = drift)
-					# Definie the ammount of offspting
-					self.cross(person = person, verbose = verbose, log = log)
-					self.select(person = person, text = "Person (N: {id}, G: {tl}) {ind} has not reached adulthood.\n" , verbose = verbose, log = log, criteria = criteria)
-				for person in self.people:
-					if person.living == False:
-						self.generation[self.cgen].remove(person)
-				self.people = self.generation[self.cgen + 1]
-				self.average.append(round(stat.mean(self.distances), 2))
-				self.size = len(self.people)
-				self.slog.append(self.size)
 				if verbose:
-					print(self.family_tree(verbose = verbose, log = log))
-			if self.size <= 1:
-				self.slog.append(self.size)
+					print(f"")
+				self.log += f"\n"
+			# Loop individuals
+			self.distances = []
+			for person in self.people:
+				# Generation comparison with the reference
+				self.distances.append(round(compare(self.reference.seq, person.seq), 2))
+				# Mutate
+				self.mutate(person = person, rate = rate, verbose = verbose, log = log)
+				self.drift(person = person, text = "Person (N:{id},G:{tl}) {ind} has not lived long enough to see the next generation due to random reasons.\n", verbose = verbose, log = log, drift = drift)
+				if self.cgen > 0:
+					self.select(person = person, text = "Person (N:{id},G:{tl}) {ind} has died due to survival issues.\n" , verbose = verbose, log = log, criteria = criteria)
+				if person.living:
+					self.cross(person = person, verbose = verbose, log = log)
+			self.people = self.generation[self.cgen + 1]
+			if not self.people:
+				self.sustained = False
+			self.average.append(round(stat.mean(self.distances), 2))
+			self.size = len(self.people)
+			self.slog.append(self.size)
+			# if verbose:
+			# 	print(self.family_tree(verbose = verbose, log = log))
+			if log:
+				self.dev += f"""\nAfter the fact of the run of the generation
+				# Number of people to start with
+				self.size = {self.size}
+				# Number of generations
+				self.gen = {self.gen}
+				# So that there are no errors
+				self.cgen = {self.cgen}
+				# A list that keeps all the individuals (as the data structure above)
+				self.people = {self.people}
+				# list of all generations
+				self.generation = {self.generation}
+				# String where we output all the data of the seqeunces
+				self.log = 
+				# A list that keep track of all the generations individual count
+				self.slog = {self.slog}
+				# Homogeneousness
+				self.hom = {self.hom}
+				# A temporary list of the distances from the reference
+				self.distances = {self.distances}
+				# A list of the average reference similarity of a generation for each generation
+				self.average = {self.average}
+				# A parameter for when the population dies
+				self.sustained = {self.sustained}
+				#######################################################################################
+			"""
+			if self.sustained == False:
+				# self.slog.append(self.size)
 				print("The populations has died.\n")
 				self.log += "The populations has died."
 				return self.slog, self.average, self.log
@@ -684,7 +742,6 @@ class Population:
 	def expression(self) -> None:
 		"""Defining the main window of the population using tkinter"""
 		# Tkinter stats
-		# The must haves
 		self.window = Tk()
 		self.window.geometry("1920x1080")
 		self.window.title("R.S.R. Simulation")
@@ -730,13 +787,7 @@ class Population:
 			person.living = False
 			if verbose:
 				print(text.format(id = person.id, tl = person.time, ind = person))
-			if log:
-				self.log += text.format(id = person.id, tl = person.time, ind = person)
-			else:
-				if verbose:
-					print(text.format(id = person.id, tl = person.time, ind = person))
-				if log:
-					self.log += text.format(id = person.id, tl = person.time, ind = person)
+			self.log += text.format(id = person.id, tl = person.time, ind = person)
 
 	def select(self, person: Person, text: str, verbose: bool, log: bool, criteria: int|float = 10):
 		"""Removes unfit individuals"""
@@ -752,13 +803,11 @@ class Population:
 			person.living = False
 			if verbose:
 				print(text.format(id = person.id, tl = person.time, ind = person))
-			if log:
-				self.log += text.format(id = person.id, tl = person.time, ind = person)
+			self.log += text.format(id = person.id, tl = person.time, ind = person)
 		else:
 			if verbose:
-				print(text.format(id = person.id, tl = person.time, ind = person))
-			if log:
-				self.log += text.format(id = person.id, tl = person.time, ind = person)
+				print(f"Person (N:{person.id},G:{person.time}): {str(person)}: Was fit enogh to live on.")
+			self.log += f"Person (N:{person.id},G:{person.time}): {str(person)}: Was fit enogh to live on.\n"
 
 	def cross(self, person: Person, verbose: bool = False, log: bool = False) -> None:
 		"""Picks how many kids and with who the person given has"""
@@ -770,32 +819,43 @@ class Population:
 		if not isinstance(log, bool):
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
 		# How many children the individual has
-		loops = round(compare(person.seq, self.reference.seq) % 10)
+		loops = random.randint(0, round(compare(person.seq, self.reference.seq) % 10))
 		if loops == 0:
-			if verbose:
-				print(f"Person (N:{person.id},G:{person.time}): {str(person)} Has not had any children\n")
-			if log:
-				self.log += (f"Person (N:{person.id},G:{person.time}): {str(person)} Has not had any children\n")
+			# if verbose:
+			# 	print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} Has not had any children.\n")
+			# self.log += (f"\tPerson (N:{person.id},G:{person.time}): {str(person)} Has not had any children.\n")
+			person.living = False
 			return None
+		if verbose:
+			print(f"Calculating children for Person (N:{person.id},G:{person.time}): {str(person)}:\n")
+		self.log += (f"Calculating children for Person (N:{person.id},G:{person.time}): {str(person)}:\n\n")
 		for loop in range(loops):
 			# Random mate choice
 			person1 = random.choice(self.people)
-			# Making sure it's not the same person
-			while person == person1 and self.size > 1 or not person1.living:
+			# Making sure it's not a corpse (if person 1 is person and is dead then we have an infinite loop)
+			while not person1.living == True and self.size > 1:
 				person1 = random.choice(self.people)
+			# Handling self replication
+			if person == person1 and self.size > 1:
+				if verbose:
+					print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} decided to clone themself.")
+				self.log += f"\tPerson (N:{person.id},G:{person.time}): {str(person)} decided to clone themself.\n"
 			# The parents recombination
 			rec_position = random.randint(0, len(str(person1)) - 1)
 			# The child
 			person3 = Person(sequence = str(person)[:rec_position:1] + str(person1)[rec_position::1],
-					ID = loop + 1,
+					ID = len(self.generation[self.cgen + 1]) + 1,
 					x_pos = round((person1.x_pos + person.x_pos)/2),
 					y_pos = round((person1.y_pos + person.y_pos)/2),
 					time = self.cgen + 1)
-			if verbose:
-				print(f"Person (N:{person1.id},G:{person1.time}): {str(person1)} x Person (N:{person.id},G:{person.time}): {str(person)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.")
-			if log:
-				self.log += (f"Person (N:{person1.id},G:{person1.time}): {str(person1)} x Person (N:{person.id},G:{person.time}): {str(person)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.\n")
 			self.generation[self.cgen + 1].append(person3)
+			if verbose:
+				print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)}  at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.")
+			self.log += (f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.\n")
+		person.living = False
+		if verbose:
+			print(f"")
+		self.log += f"\n"
 
 	def mutate(self, person: Person, rate: int|float = 0.5, verbose: bool = False, log: bool = False) -> None:
 		"""Mutates the individual of the population given."""
@@ -812,10 +872,8 @@ class Population:
 		prevseq = person.seq
 		person.mutate(rate = rate)
 		if verbose:
-			print(f"Person (N:{person.id},G:{person.time}) {prevseq} has mutated to {person}.")
-		if log:
-			self.log += f"Person (N:{person.id},G:{person.time}) {prevseq} has mutated to {person}.\n\n"
-
+			print(f"Person (N:{person.id},G:{person.time}) {prevseq} has mutated to {person}.\n")
+		self.log += f"Person (N:{person.id},G:{person.time}) {prevseq} has mutated to {person}.\n\n"
 
 def cmd_line_input():
 	"""Returns all command line argument inputs as variables for the program to use."""
@@ -912,8 +970,7 @@ def make_folders(output_path: str, folder_name: str) -> None:
 		raise TypeError(f"Please specify path.\nGot {output_path}.\n")
 	if not isinstance(folder_name, str):
 		raise TypeError(f"Please specify path.\nGot {folder_name}.\n")
-	print(f"""
-##########################################################################
+	print(f"""##########################################################################
 Creating output folder
 ##########################################################################\n""")
 	new_folder_path = os.path.join(output_path, folder_name)
@@ -980,13 +1037,15 @@ def main():
 	make_folders(cmd['-o'], "RSR_output_folder")
 	athens = Population(size = cmd["-size"], generations = cmd["-gen"], reference_sequence = NCBI_parse(cmd["-acc"], cmd["-email"]), homogeneity = cmd["-hom"])
 	output_file = os.path.join("RSR_output_folder", 'Results.txt')
+	developer = os.path.join("RSR_output_folder", 'dev.txt')
 	generations_output = athens.generations(rate = cmd["-rate"], verbose = cmd["-v"], log = cmd["-log"], drift = cmd["-drift"], criteria = cmd["-criteria"])
 	with open(output_file, 'w') as out_file:
 		out_file.write(f"Reference sequence: {NCBI_parse(cmd['-acc'], cmd['-email'])}\n\nPopulation:\n{generations_output[2]}")
 		make_figures(generations_output[0], generations_output[1])
-	print(f"""
-##############################################################################################################################################
-Process finished.\n\nParse results at {os.path.abspath(cmd['-o'])}\RSR_output_folder within Results.txt and RSR Outpout Graph.png
+	with open(developer, 'w') as dev:
+		dev.write(athens.dev)
+	print(f"""##############################################################################################################################################
+Process finished.\nParse results at {os.path.abspath(cmd['-o'])}\\RSR_output_folder within Results.txt and RSR Outpout Graph.png
 ##############################################################################################################################################\n""")
 	main_end_time = time.time() - main_time
 	print(f"Took {main_end_time:.2f} seconds to run.\n")
