@@ -636,6 +636,29 @@ class Population:
 			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
+		def expression(self) -> None:
+			"""Defining the main window of the population using tkinter"""
+			# Tkinter stats
+			self.window = Tk()
+			self.window.geometry("1920x1080")
+			self.window.title("R.S.R. Simulation")
+			# grid for the people
+			self.field = ttk.Frame(master = self.window)
+			ttk.Label(self.field, text = f"'N' Refers to the person's ID number, 'G' Refers to their generation.").pack()
+			# Escape
+			ttk.Button(self.window, text = "Quit", command = self.window.destroy).pack()
+		def make_window(self) -> None:
+			"""Simulates the populations movements."""
+			# This really shoyld be moved to it's own seperate thing and this function should not be for the description i've given it
+			for person in self.people:
+				person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
+				if person.x_pos > 100:
+					person.x_pos = 100
+				if person.y_pos > 100:
+					person.y_pos = 100
+				# Chagne to input image instead
+				ttk.Label(self.field, text = f"(N:{person.id},G:{person.time})").pack()
+			self.window.update()
 		# Loop generations
 		for self.cgen in range(self.gen - 1):
 			info = f"""# ######################################################################
@@ -696,8 +719,6 @@ class Population:
 					self.distances.append(rounded_dist)
 				self.average.append(round(stat.mean(self.distances), 2))
 				self.generation[0] = self.people
-				# Family tree parameter
-				self.ftree = ""
 				if verbose:
 					print(f"")
 				self.log += f"\n"
@@ -719,8 +740,6 @@ class Population:
 			self.average.append(round(stat.mean(self.distances), 2))
 			self.size = len(self.people)
 			self.slog.append(self.size)
-			# if verbose:
-			# 	print(self.family_tree(verbose = verbose, log = log))
 			if log:
 				self.dev += f"""\nAfter the fact of the run of the generation
 				# Number of people to start with
@@ -754,36 +773,24 @@ class Population:
 				return self.slog, self.average, self.log
 		return self.slog, self.average, self.log
 
-	def expression(self) -> None:
-		"""Defining the main window of the population using tkinter"""
-		# Tkinter stats
-		self.window = Tk()
-		self.window.geometry("1920x1080")
-		self.window.title("R.S.R. Simulation")
-		# grid for the people
-		self.field = ttk.Frame(master = self.window)
-		ttk.Label(self.field, text = f"'N' Refers to the person's ID number, 'G' Refers to their generation.").pack()
-		# Escape
-		ttk.Button(self.window, text = "Quit", command = self.window.destroy).pack()
-
-	def make_window(self) -> None:
-		"""Simulates the populations movements."""
-		# This really shoyld be moved to it's own seperate thing and this function should not be for the description i've given it
-		for person in self.people:
-			person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
-			if person.x_pos > 100:
-				person.x_pos = 100
-			if person.y_pos > 100:
-				person.y_pos = 100
-			# Chagne to input image instead
-			ttk.Label(self.field, text = f"(N:{person.id},G:{person.time})").pack()
-		self.window.update()
-
-	def family_tree(self,verbose: bool = False, log: bool = True):
+	def family_tree(self, parent1: Person, parent2: Person, child: Person, verbose: bool = False, log: bool = True) -> str:
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
 		if not isinstance(verbose, bool):
 			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
+		if not isinstance(parent1, Person):
+			raise TypeError(f"Problem with given argument.\nParent1 must be a Person, got Type: {type(parent1)}, Value: {parent1}.\n")
+		if not isinstance(parent2, Person):
+			raise TypeError(f"Problem with given argument.\nParent2 must be a Person, got Type: {type(parent2)}, Value: {parent2}.\n")
+		if not isinstance(child, Person):
+			raise TypeError(f"Problem with given argument.\nchild must be a Person, got Type: {type(child)}, Value: {child}.\n")
+		self.ftree = f"""\t(N:{parent1.id},G:{parent1.time})--+
+				|
+				|
+				+----+(N:{child.id},G:{child.time})
+				|
+				|
+	(N:{parent2.id},G:{parent2.time})--+\n"""
 		return self.ftree
 
 	def drift(self, person: Person, text: str, verbose: bool, log: bool, drift: int|float = 10):
@@ -834,7 +841,7 @@ class Population:
 		if not isinstance(log, bool):
 			raise TypeError(f"Invalid argument for log. Given {log}.\n")
 		# How many children the individual has
-		loops = random.randint(0, round(compare(person.seq, self.reference.seq) % 10))
+		loops = round(compare(person.seq, self.reference.seq) / 10)
 		if loops == 0:
 			# if verbose:
 			# 	print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} Has not had any children.\n")
@@ -867,6 +874,9 @@ class Population:
 			if verbose:
 				print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)}  at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.")
 			self.log += (f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.\n")
+			if verbose:
+				print(self.family_tree(verbose = verbose, log = log))
+			self.log += self.family_tree(parent1 = person, parent2 = person1, child = person3, verbose = verbose, log = log)
 		person.living = False
 		if verbose:
 			print(f"")

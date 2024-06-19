@@ -161,6 +161,7 @@ def test_make_folders():
 	new_folder = "new_folder"
 	make_folders(output_path, new_folder)
 	assert os.path.exists(new_folder) == True
+	os.remove(os.path.join(output_path, "new_folder")
 
 def test_generations():
 	athens = Population(size = 100, generations = 5)
