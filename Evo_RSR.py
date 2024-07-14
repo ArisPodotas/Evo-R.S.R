@@ -18,6 +18,7 @@ import time
 from tkinter import *
 from tkinter import ttk
 import numpy as np
+from PIL import Image
 
 class Sequence:
 	"""This class is for representing sequences of DNA or RNA."""
@@ -219,7 +220,7 @@ class Sequence:
 			elif nuc_in_pos == "G":
 				mut_options = ["A"]
 			elif nuc_in_pos == "C":
-				mut_options =  ["T"]
+				mut_options = ["T"]
 			ls[mut_position] = random.choice(mut_options)
 			self.seq = ''.join(ls)
 		return self.seq
@@ -554,18 +555,23 @@ class Person(Sequence):
 		"""Set an image that represent the phenotype"""
 		self.path = f"./tmp/people/person {self.id}.ppm"
 		self.compare = compare(reference, self.seq)
-		self.phenotype = open(self.path, "w")
-		self.phenotype.write(f"P3\n1 1 255\n0 {round(self.compare * 2.55)} 0\n\n")
+		self.phenotype = Image.new("RGB", (3, 3))
+		self.phenotype.save(self.path, format = 'bmp')
 		self.phenotype.close()
 		return self.path
 
-	def make_window(self) -> None:
-		"""Creates a window with a grid representation of the persons position."""
-		window = Tk()
-		window.title("R.S.R. Simulation")
-		frame = ttk.Frame(window, padding = 20)
-		frame.grid()
-		window.mainloop()
+	def place(self, world) -> None:
+		"""Simulates the populations movements."""
+		self.move(x_ammount = random.randint(0, 300), y_ammount = random.randint(0, 300))
+		if self.x_pos > 1200:
+			self.x_pos = 1200
+		if self.y_pos > 900:
+			self.y_pos = 900
+		self.label = ttk.Label(world, text = f"(N:{self.id},G:{self.time})")
+		self.label.place(x = self.x_pos, y = self.y_pos)
+
+	def pluck(self) -> None:
+		self.label.destroy()
 
 class Population:
 	def __init__(self,
@@ -624,6 +630,19 @@ class Population:
 		"""Returns the current ammount of individuals in the population."""
 		return self.size
 
+	def world(self) -> None:
+		"""Defining the main window of the population using tkinter"""
+		# Tkinter stats
+		self.window = Tk()
+		self.window.geometry("1920x1080")
+		self.window.title("R.S.R. Simulation")
+		# grid for the people
+		self.field = ttk.Frame(master = self.window).grid()
+		ttk.Label(self.window, text = f"'N' Refers to the person's ID number, 'G' Refers to their generation.").grid()
+		# Escape
+		self.quit = ttk.Button(self.window, text = "Quit", command = self.window.destroy)
+		self.quit.place(x = 700, y = 800)
+
 	def generations(self, rate: int|float = 0.5, drift: int|float = 10, criteria: int|float = 10, verbose: bool = False, log: bool = True) -> tuple:
 		"""Simulates te entire population throughout all of its life span."""
 		if not isinstance(drift, int|float):
@@ -636,29 +655,8 @@ class Population:
 			raise TypeError(f"Problem with given argument.\nVerbose must be boolean, got {verbose}.\n")
 		if not isinstance(log, bool):
 			raise TypeError(f"Problem with given argument.\nLog must be boolean, got {log}.\n")
-		def expression(self) -> None:
-			"""Defining the main window of the population using tkinter"""
-			# Tkinter stats
-			self.window = Tk()
-			self.window.geometry("1920x1080")
-			self.window.title("R.S.R. Simulation")
-			# grid for the people
-			self.field = ttk.Frame(master = self.window)
-			ttk.Label(self.field, text = f"'N' Refers to the person's ID number, 'G' Refers to their generation.").pack()
-			# Escape
-			ttk.Button(self.window, text = "Quit", command = self.window.destroy).pack()
-		def make_window(self) -> None:
-			"""Simulates the populations movements."""
-			# This really shoyld be moved to it's own seperate thing and this function should not be for the description i've given it
-			for person in self.people:
-				person.move(x_ammount = random.randint(0, 10), y_ammount = random.randint(0, 10))
-				if person.x_pos > 100:
-					person.x_pos = 100
-				if person.y_pos > 100:
-					person.y_pos = 100
-				# Chagne to input image instead
-				ttk.Label(self.field, text = f"(N:{person.id},G:{person.time})").pack()
-			self.window.update()
+		# Make different tk inter function for each field because i want one to be the world i want one to show the tree and the seccession
+		self.world()
 		# Loop generations
 		for self.cgen in range(self.gen - 1):
 			info = f"""# ######################################################################
@@ -713,6 +711,8 @@ class Population:
 						y_pos = random.randint(0, 10),
 						time = self.cgen)
 					person.phenotype(self.reference.seq)
+					person.place(world = self.field)
+					self.window.update()
 					self.people.append(person)
 					rounded_dist = round(compare(self.reference.seq, person.seq), 2)
 					self.log += f"Person {_ + 1}, Generation: 0 (Parent), {str(person)}, reference similarity ({self.reference}) roughly {rounded_dist}.\n"
@@ -725,6 +725,8 @@ class Population:
 			# Loop individuals
 			self.distances = []
 			for person in self.people:
+				person.place(world = self.field)
+				self.window.update()
 				# Generation comparison with the reference
 				self.distances.append(round(compare(self.reference.seq, person.seq), 2))
 				# Mutate
@@ -734,6 +736,9 @@ class Population:
 					self.select(person = person, text = "Person (N:{id},G:{tl}) {ind} has died due to survival issues.\n" , verbose = verbose, log = log, criteria = criteria)
 				if person.living:
 					self.cross(person = person, verbose = verbose, log = log)
+				else:
+					person.label.destroy()
+					self.window.update()
 			self.people = self.generation[self.cgen + 1]
 			if not self.people:
 				self.sustained = False
@@ -771,6 +776,7 @@ class Population:
 				print("The populations has died.\n")
 				self.log += "The populations has died."
 				return self.slog, self.average, self.log
+		# self.quit.pack()
 		return self.slog, self.average, self.log
 
 	def family_tree(self, parent1: Person, parent2: Person, child: Person, verbose: bool = False, log: bool = True) -> str:
@@ -871,12 +877,14 @@ class Population:
 					y_pos = round((person1.y_pos + person.y_pos)/2),
 					time = self.cgen + 1)
 			self.generation[self.cgen + 1].append(person3)
+			person3.phenotype(self.reference.seq)
 			if verbose:
-				print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)}  at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.")
+				print(f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.")
 			self.log += (f"\tPerson (N:{person.id},G:{person.time}): {str(person)} x Person (N:{person1.id},G:{person1.time}): {str(person1)} at position {rec_position} To give new Person (N:{person3.id},G:{person3.time}): {str(person3)}.\n")
+			self.family_tree(parent1 = person, parent2 = person1, child = person3, verbose = verbose, log = log)
 			if verbose:
-				print(self.family_tree(verbose = verbose, log = log))
-			self.log += self.family_tree(parent1 = person, parent2 = person1, child = person3, verbose = verbose, log = log)
+				print(self.ftree)
+			self.log += self.ftree
 		person.living = False
 		if verbose:
 			print(f"")
